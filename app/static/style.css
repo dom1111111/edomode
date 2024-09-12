@@ -1,0 +1,84 @@
+/* --------- Root Elements --------- */
+
+html, body {
+    margin: 0%;
+    padding: 0%;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;                   /* used to prevent scrolling from happening if items spill out of screen size - good for SPA */
+    font-family: Arial, sans-serif;     /* global font */ 
+    font-size: 16px;                    /* global font size */
+    color: rgb(230,230,230);            /* global font color */
+    background-color: rgb(38, 38, 38);            /* global background color */
+}
+
+body { 
+    display: flex;                      /* make it so that window uses flex display */
+    flex-direction: column;             /* arrange main sections vertically in a column */
+    align-items: stretch;               /* makes it so that the horizontal space of each section is max width */ 
+    justify-content: space-between;     /* makes it first and third items are at top and bottom, and second is in middle */
+}
+
+/* --------- Common Elements --------- */
+
+.bordered {                             /* common bordered style */
+    border: 2px solid rgb(142, 142, 142);
+}
+
+.bar-section {                          /* styling class for top/bottom bar sections */
+    margin: 5px;
+    padding: 3px;
+}
+
+/* --------- Tab Bar --------- */
+
+
+
+
+/* --------- Main Viewer --------- */
+
+#main-viewer {
+    flex: 1;                            /* this makes it take up available space */
+    /* margin: 0px 5px; */              /* no top and bottom margin, but left and right */
+    margin: 5px 5px 0px 5px;            /* margin to all sides expect bottom */ 
+    background-color: #203130;
+    color: black;
+    display: flex;
+    align-items: stretch;
+        /* the flex properties make it so that the element within this will take up all available space */
+        /* just need to also have the contained element use `flex: 1` as well */
+    overflow: hidden;
+        /* this makes it so that any the element within grows, this will not also grow */ 
+        /* make sure that the containing element uses overflow: auto so that it will scroll when it grows */ 
+}
+
+
+/* log-entry {
+    border: 2px solid red;
+} */
+
+
+/* --------- Command Bar --------- */
+
+#command-bar {
+    /* the following make it so that the command text input element takes up maximum width: */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+#command-input {
+    outline: none;                      /* disables the outline when in focus */
+    /* border: none; */
+    background-color: transparent;      /* `border:none` and no background color are to remove default visuals */
+    font-size: 1.5rem; 
+    color: rgb(230,230,230);
+}
+
+#command-input:focus {                  /* add a strong highlight when mouse over search-button */
+    border-color: rgb(55, 176, 94);
+}
+
+
+
+
