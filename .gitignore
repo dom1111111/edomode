@@ -1,7 +1,9 @@
-dev_notes.md
 venv/
 *__pycache__/
 *.pyc
 
 # pytest
 pytest_cache/
+
+# exlude any folder starting with `_`
+_*/

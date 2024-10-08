@@ -3,8 +3,7 @@
 const tabBar = document.getElementById("tab-bar");
 const mainView = document.getElementById("main-viewer");
 const commandInput = document.getElementById("command-input");
-const bigLog = document.createElement("big-log");                               // create bigLog
-
+const logView = document.createElement("log-view");                             // create logView
 
 ///////// Library Data /////////
 
@@ -67,7 +66,7 @@ async function getAllEntries() {
     console.log(response)
     for (const entryTitle in response) {                        // iterate through response, getting title and data for each entry
         let entryData = response[entryTitle];
-        bigLog.addEntry(entryTitle, entryData['time'], null, entryData['content']); // render the entry in the big-log
+        logView.addEntry(entryTitle, entryData['time'], null, entryData['content']); // render the entry in the log-view
     }
 }
 
@@ -86,14 +85,8 @@ async function createEntry(content) {
         }
     };
     serverRequest("/lib/new", data);                            // send the entry to server for storage
-    bigLog.addEntry(data.title, time_str, "",data.entry_data.content);  // render new entry in big log
+    logView.addEntry(data.title, time_str, "",data.entry_data.content);  // render new entry in log-view
 }
-
-
-///////// Page Setup /////////
-
-mainView.appendChild(bigLog);                                                   // add the bigLog widget into main-view
-getAllEntries()                                                                 // render all existing entries (stored on server) in the big log
 
 
 ///////// Listeners /////////
@@ -105,3 +98,11 @@ commandInput.addEventListener("keyup", (e) => {
         commandInput.value = "";                                                // clear the input value
     }
 })
+
+
+///////// Page Setup /////////
+
+window.onload = () => {
+    mainView.appendChild(logView);                              // add the logView widget into main-view
+    getAllEntries();                                            // render all existing entries (stored on server) in the log view
+};

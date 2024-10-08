@@ -1,7 +1,7 @@
 from sys import argv
 from flask import Flask, request, jsonify, send_from_directory
 from pathlib import Path
-from library_funcs import library as usr_lib
+from backend import library as usr_lib
 
 ######### Data #########
 
