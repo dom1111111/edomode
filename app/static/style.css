@@ -9,7 +9,7 @@ html, body {
     font-family: Arial, sans-serif;     /* global font */ 
     font-size: 16px;                    /* global font size */
     color: rgb(230,230,230);            /* global font color */
-    background-color: rgb(38, 38, 38);            /* global background color */
+    background-color: rgb(82, 82, 82);  /* global background color */
 }
 
 body { 
@@ -27,7 +27,7 @@ body {
 
 .bar-section {                          /* styling class for top/bottom bar sections */
     margin: 5px;
-    padding: 3px;
+    padding: 5px;
 }
 
 /* --------- Tab Bar --------- */
@@ -41,9 +41,10 @@ body {
     flex: 1;                            /* this makes it take up available space */
     /* margin: 0px 5px; */              /* no top and bottom margin, but left and right */
     margin: 5px 5px 0px 5px;            /* margin to all sides expect bottom */ 
-    background-color: #203130;
+    /* background-color: #203130; */
     color: black;
     display: flex;
+    flex-direction: column;
     align-items: stretch;
         /* the flex properties make it so that the element within this will take up all available space */
         /* just need to also have the contained element use `flex: 1` as well */
@@ -61,24 +62,9 @@ body {
 /* --------- Command Bar --------- */
 
 #command-bar {
-    /* the following make it so that the command text input element takes up maximum width: */
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-}
-
-#command-input {
-    outline: none;                      /* disables the outline when in focus */
-    /* border: none; */
-    background-color: transparent;      /* `border:none` and no background color are to remove default visuals */
-    font-size: 1.5rem; 
+    margin: 5px;
+    background-color:rgb(38, 38, 38);
+    font-size: 1.5rem;
     color: rgb(230,230,230);
 }
-
-#command-input:focus {                  /* add a strong highlight when mouse over search-button */
-    border-color: rgb(55, 176, 94);
-}
-
-
-
 

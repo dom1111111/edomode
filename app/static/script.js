@@ -1,14 +1,13 @@
 ///////// Elements /////////
 
-const tabBar = document.getElementById("tab-bar");
 const mainView = document.getElementById("main-viewer");
-const commandInput = document.getElementById("command-input");
-const logView = document.createElement("log-view");                             // create logView
+const logView = document.getElementById("log-view");
+const commandInput = document.getElementById("command-bar");
 
-///////// Library Data /////////
 
-const serverURL = window.location.origin;                                       // gets the url origin (protocol, hostname, and port) of the server URL (to be used to make further requests)
-var tempLibPath = "/home/dom/Desktop/doms_files/Coding_Projects/apps/_UUI_Super_App/2024.05_SA/_test_library";
+///////// Data /////////
+
+const serverURL = window.location.origin;                       // gets the url origin (protocol, hostname, and port) of the server URL (to be used to make further requests)
 
 
 ///////// Support Functions /////////
@@ -57,13 +56,11 @@ async function serverRequest(endPoint, objectData) {
 }
 
 
-///////// Main Server-Based Functions /////////
+///////// Main Server-Request Functions /////////
 
 // Get all entries from the server and render them //
-async function getAllEntries() {
-    let data = {lib_dir: tempLibPath};                          // create the object with data for the request
-    response = await serverRequest("/lib/all", data);           // make request to server, sending the data
-    console.log(response)
+async function displayAllEntries() {
+    response = await serverRequest("/lib/all", {});             // make request to server, sending the data
     for (const entryTitle in response) {                        // iterate through response, getting title and data for each entry
         let entryData = response[entryTitle];
         logView.addEntry(entryTitle, entryData['time'], null, entryData['content']); // render the entry in the log-view
@@ -75,7 +72,6 @@ async function createEntry(content) {
     let now_time = Date.now();
     let time_str = timestampToStr(now_time)
     let data = {                                                // create the object with data of the new log entry's properties, and the library it belongs to
-        lib_dir: tempLibPath,
         title: `Log ${time_str}`,
         entry_data: {
             time: now_time,
@@ -85,24 +81,17 @@ async function createEntry(content) {
         }
     };
     serverRequest("/lib/new", data);                            // send the entry to server for storage
-    logView.addEntry(data.title, time_str, "",data.entry_data.content);  // render new entry in log-view
+    logView.addEntry(data.title, time_str, "", data.entry_data.content);  // render new entry in log-view
 }
 
 
 ///////// Listeners /////////
 
-commandInput.addEventListener("keyup", (e) => {
-    if (e.key == 'Enter' && !(e.shiftKey) && e.target.value) {
-        // ^ if the enter key was pressed, while not holding shift, and the input was not empty, then:
-        createEntry(commandInput.value)                                         // create and render a new entry with command bar value as content
-        commandInput.value = "";                                                // clear the input value
-    }
-})
 
 
 ///////// Page Setup /////////
 
 window.onload = () => {
-    mainView.appendChild(logView);                              // add the logView widget into main-view
-    getAllEntries();                                            // render all existing entries (stored on server) in the log view
+    displayAllEntries();                                        // render all existing entries (stored on server) in the log view
+    commandInput.action = createEntry;                          // set `createEntry` as the callback function for the command bar input event
 };

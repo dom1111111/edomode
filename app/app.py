@@ -26,6 +26,7 @@ def get_main_page():
 def get_entries():
     """Get all entries in a library."""
     request_data = request.get_json()
+    request_data.update({"lib_dir": lib_path})              # must add library directory into request
     entries = usr_lib.get_all_entries(**request_data)
     return jsonify(entries)
 
@@ -33,9 +34,10 @@ def get_entries():
 def new_entry():
     """Create a new entry in a library."""
     request_data = request.get_json()
+    request_data.update({"lib_dir": lib_path})
     # request_data should already be formatted correctly to match function as is!
     usr_lib.create_entry(**request_data)
-    return ""
+    return jsonify("")
 
 
 ######### Starting Script #########
@@ -45,5 +47,5 @@ if __name__ == "__main__":
         lib_path = argv[1]
     except:
         # if no library folder path is provided, then use the test_library folder as a default
-        lib_path = lib_path = Path(__file__).parent.parent / "_test_library"
+        lib_path = Path(__file__).parent.parent / "_test_library"
     app.run(debug=True)                 # `debug=True` should only be while testing!
