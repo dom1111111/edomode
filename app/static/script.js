@@ -55,8 +55,9 @@ async function serverRequest(endPoint, objectData) {
     return result
 }
 
+/////////////////////////////////////////////////////////////////////////////////
 
-///////// Main Server-Request Functions /////////
+///////// Action Functions /////////
 
 // Get all entries from the server and render them //
 async function displayAllEntries() {
@@ -84,6 +85,7 @@ async function createEntry(content) {
     logView.addEntry(data.title, time_str, "", data.entry_data.content);  // render new entry in log-view
 }
 
+/////////////////////////////////////////////////////////////////////////////////
 
 ///////// Listeners /////////
 

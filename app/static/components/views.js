@@ -37,7 +37,7 @@ customElements.define("log-view", class MyElement extends HTMLElement {
     /** Create a new entry and append it to this view. */
     addEntry(title, time, supers, content) {
         // Create the entry element and add it to this
-        const entry = document.createElement("log-view-entry");
+        const entry = document.createElement("view-entry");
         this.shadowRoot.appendChild(entry);
         // Add property values and content to entry (this must be done AFTER entry is added!)
         entry.setAttribute("title", title);
@@ -78,9 +78,21 @@ customElements.define("log-view", class MyElement extends HTMLElement {
 
 
 /////////////////////////////////////////////////////////////////////////////////
-// Log-View Entry
+// Tree-View
 
-customElements.define("log-view-entry", class MyElement extends HTMLElement {
+
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// Schedule-View
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// View Entry
+
+customElements.define("view-entry", class MyElement extends HTMLElement {
 
     /// HTML and CSS Code for this Element ///
 
