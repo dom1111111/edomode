@@ -59,33 +59,84 @@ async function serverRequest(endPoint, objectData) {
 
 ///////// Action Functions /////////
 
-// Get all entries from the server and render them //
-async function displayAllEntries() {
-    response = await serverRequest("/lib/all", {});             // make request to server, sending the data
-    for (const entryTitle in response) {                        // iterate through response, getting title and data for each entry
-        let entryData = response[entryTitle];
-        logView.addEntry(entryTitle, entryData['time'], null, entryData['content']); // render the entry in the log-view
-    }
-}
+const actions = {
 
-// Create, store, and render a new entry //
-async function createEntry(content) {
-    let now_time = Date.now();
-    let time_str = timestampToStr(now_time)
-    let data = {                                                // create the object with data of the new log entry's properties, and the library it belongs to
-        title: `Log ${time_str}`,
-        entry_data: {
-            time: now_time,
-            type: "log",
-            // supers: "",
-            content: content
+    // Get all entries from the server and render them //
+    async displayAllEntries() {
+        response = await serverRequest("/lib/all", {});         // make request to server, sending the data
+        for (const entryTitle in response) {                    // iterate through response, getting title and data for each entry
+            let entryData = response[entryTitle];
+            logView.addEntry(entryTitle, entryData['time'], null, entryData['content']);    // render the entry in the log-view
         }
-    };
-    serverRequest("/lib/new", data);                            // send the entry to server for storage
-    logView.addEntry(data.title, time_str, "", data.entry_data.content);  // render new entry in log-view
-}
+    },
+
+    // Create, store, and render a new entry //
+    async createEntry(content) {
+        let now_time = Date.now();
+        let time_str = timestampToStr(now_time)
+        let data = {                                            // create the object with data of the new log entry's properties, and the library it belongs to
+            title: `Log ${time_str}`,
+            entry_data: {
+                time: now_time,
+                type: "log",
+                // supers: "",
+                content: content
+            }
+        };
+        serverRequest("/lib/new", data);                        // send the entry to server for storage
+        logView.addEntry(data.title, time_str, "", data.entry_data.content);    // render new entry in log-view
+    }
+};
+
+// // Get all entries from the server and render them //
+// async function displayAllEntries() {
+//     response = await serverRequest("/lib/all", {});             // make request to server, sending the data
+//     for (const entryTitle in response) {                        // iterate through response, getting title and data for each entry
+//         let entryData = response[entryTitle];
+//         logView.addEntry(entryTitle, entryData['time'], null, entryData['content']); // render the entry in the log-view
+//     }
+// }
+
+// // Create, store, and render a new entry //
+// async function createEntry(content) {
+//     let now_time = Date.now();
+//     let time_str = timestampToStr(now_time)
+//     let data = {                                                // create the object with data of the new log entry's properties, and the library it belongs to
+//         title: `Log ${time_str}`,
+//         entry_data: {
+//             time: now_time,
+//             type: "log",
+//             // supers: "",
+//             content: content
+//         }
+//     };
+//     serverRequest("/lib/new", data);                            // send the entry to server for storage
+//     logView.addEntry(data.title, time_str, "", data.entry_data.content);  // render new entry in log-view
+// }
 
 /////////////////////////////////////////////////////////////////////////////////
+
+///////// Setup for Actions /////////
+
+// SSE Setup - This is done so that the server can trigger actions here in the front-end UI
+const actionStream = new EventSource(serverURL + "/stream-ui-msgs");
+
+function actionExecuter(action, data) {
+    func = actions[action];
+    func(data);
+    // create log event for the action??
+}
+// ^ PUT THIS FUNCTION IN onmessage BELOW
+
+actionStream.onmessage = (event) => {
+    // trigger action!
+    //event.data
+    // FIGURE OUT WHAT EVENT.DATA IS AND HOW TO EXTRACT VALUES YOU WANT
+    console.log(event.data);
+    //console.log("action:", )
+}
+
+
 
 ///////// Listeners /////////
 
