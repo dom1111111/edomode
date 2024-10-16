@@ -54,21 +54,6 @@ def stream_ui_action_msgs():
 
 ### Main Endpoint for Command Access
 
-def get_entries():
-    """Get all entries in a library."""
-    request_data = request.get_json()
-    request_data.update({"lib_dir": lib_path})          # must add library directory into request
-    entries = usr_lib.get_all_entries(**request_data)
-    return jsonify(entries)
-
-def new_entry():
-    """Create a new entry in a library."""
-    request_data = request.get_json()
-    request_data.update({"lib_dir": lib_path})
-    # request_data should already be formatted correctly to match function as is!
-    usr_lib.create_entry(**request_data)
-    return jsonify(None)
-
 @app.route('/command', methods=["POST"])
 def execute_command():
     """Execute a command."""
@@ -78,9 +63,7 @@ def execute_command():
     args = request_data.get('args')
     kwargs = request_data.get('kargs')
     cm.execute_command(name, *args, **kwargs)
-    # DETERMINE IF COMMAND RETURNS ANYTHING OR WILL MAKE REQUESTS LATER
-    return jsonify()
-
+    return jsonify(None)
 
 ######### App Starting Script #########
 

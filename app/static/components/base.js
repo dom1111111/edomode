@@ -147,19 +147,111 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
         this._textInput.addEventListener("keyup", (e) => {
             if (e.key === 'Enter' && !(e.shiftKey) && e.target.value) {
                 // ^ if the enter key was pressed, while not holding shift, and the input was not empty, then:
-                if (typeof this._action === "function") {
-                    this._action(this._textInput.value);    // call the registered input action function (if there is one), passing the input content as argument
-                }
-                this._textInput.value = "";                 // clear the input element content
+                this._inputEnter()
             }
         });
+    }
+
+    /** The method that's called when input is entered */
+    _inputEnter() {
+        if (typeof this._action === "function") {           // if there is a registered action function,
+            this._action(this._textInput.value);            // then call the command action func, and pass in the input element text as argument.
+        }
+        this._textInput.value = "";                         // clear the input element content
+    }
+
+    /// Support Methods ///
+
+    /** 
+     * Convert a string into an array of tokens, split at whitespace and quoted passages.
+     * @param {string} str - the string to parsed into tokens.
+     * @returns {Array.<string>} - an array with each string token.
+     */
+    parseStrToTokens(str) {
+        var tokens = [];                                    // stores each string token
+        var currentToken = "";                              // stores the current token that a character should go in
+        var quoted = false;                                 // whether or not the character is within a quoted passage
+        // Iterate through each character in the string:
+        for (const char of str) {
+            if (!char.trim() && !quoted) {                  // if the current character is whitespace (`trim()` leaves an empty string if only whitespace) and not part of a quoted passage in the string
+                if (currentToken) {                         // and if the current token isn't empty,
+                    tokens.push(currentToken);              // then add the token to the array of tokens
+                    currentToken = "";                      // and reset the current token to be empty again.
+                }
+            } else if (char === '"') {                      // if the current character is a quote `"`,
+                if (quoted) {                               // and if the current token is quoted, then this quote character signifies the END of a quoted passage in the string,
+                    tokens.push(currentToken);              // and so add the token to the array of tokens
+                    currentToken = "";                      // and reset the current token to be empty again    
+                    quoted = false;                         // and reset quoted to be false.
+                } else {                                    // otherwise if the current token is NOT quoted, then this quote character signifies the START of a quoted passage,
+                    quoted = true;                          // and so quoted should be set to true.
+                }
+            } else {                                        // if the character is not a whitespace OR a whitespace in a quoted passage of the string,
+                currentToken += char                        // then just append the character to the current string.
+            }
+        }
+        if (currentToken) {                                 // if there is still a current token left,
+            tokens.push(currentToken);                      // then add it to the array of tokens.
+        }
+        // Return the array of string tokens:
+        return tokens;
+    }
+
+    /**
+     * Parse an array of string tokens into a command parameters: name, positional arguments, and named 
+     * arguments. Any tokens starting with a double dash `--` will be considered as named arguments, and 
+     * any subsequent tokens after those (which don't have double dashes themselves) will be considered 
+     * as values for those named arguments. This means that any tokens used for commands *must* follow 
+     * this order: name (first token), positional arguments (tokens after first one but before any named), 
+     * named arguments. 
+     * Additionally, if a named argument token has no subsequent values (so either immediately followed by 
+     * other named argument tokens or it itself is the last token), then it will be considered as a boolean 
+     * flag and be given the value `true`.
+     * 
+     * @param {Array.<string>} tokens - an array of string tokens.
+     * @returns {Object} - an object organizing the tokens into command parameters.
+     */
+    parseTokensToParams(tokens) {
+        let name = tokens[0];                               // get the command name from the first token
+        let pargs = [];
+        let currentNarg;
+        let nargs = {};
+        
+        for (const tok of tokens.slice(1)) {                // iterate through the token array starting after the first token
+            if (!tok.startsWith('--')) {                    // if the token doesn't start with `--`,
+                if (!currentNarg) {                         // and there hasn't been any named arguments yet
+                    pargs.push(tok);                        // then append this token to the positional argument array
+                } else {
+                    nargs[currentNarg].push(tok);           // but is there HAS been a named argument, then add this token to the array attached to the named argument key in the object for named args
+                }
+            } else {                                        // if the token DOES start with `--`,
+                let nargName = tok.replace('--', '');       // then firstly remove the starting `--` from it,
+                currentNarg = nargName;                     // set the current named argument to be this token
+                nargs[nargName] = [];                       // create a new key/value for this in the object for named args
+            }
+        }
+        
+        for (const name in nargs) {                         // now iterate through each key name in the named arguments object
+            let val = nargs[name];                          // get the value attached to the name
+            if (val.length === 1) {                         // if the array value for the named argument only has one item in it
+                nargs[name] = val[0];                       // then change the value to just be that item instead of an array holding it.
+            } else if (val.length < 1) {                    // otherwise is the array has NO items in it,
+                nargs[name] = true                          // then change the value to be `true` instead of an empty array
+            }
+        }
+
+        return {                                            // finally, return an object containing each command parameter
+            name: name,
+            pargs: pargs,
+            nargs: nargs
+        }
     }
 
     /// Action Methods ///
 
     /**
      * @param {Function} func The function which will be called when text input is entered. 
-     * The function must accept a single string argument, as the input  value will be passed 
+     * The function must accept a single string argument, as the input value will be passed 
      * to it when it's called.
      */
     set action(func) {

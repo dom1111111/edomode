@@ -2,7 +2,7 @@
 
 const mainView = document.getElementById("main-viewer");
 const logView = document.getElementById("log-view");
-const commandInput = document.getElementById("command-bar");
+const commandBar = document.getElementById("command-bar");
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -13,7 +13,7 @@ const serverURL = window.location.origin;                       // gets the url 
 
 ///////// Support Functions /////////
 
-// Convert epoch timestamp to readable datetime string //
+/** Convert epoch timestamp to readable date-time string */
 function timestampToStr(timestamp) {
     // timestamp should be int
     const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -33,12 +33,12 @@ function timestampToStr(timestamp) {
     return `${time.weekday} ${time.year}-${time.month}-${time.day} ${time.tHour}:${time.minute}:${time.second} ${time.period}`;
 }
 
-// Convert readable datetime string to epoch timestamp //
+/** Convert readable datetime string to epoch timestamp */
 function strToTimestamp(readableStr) {
     
 }
 
-// Make JSON request to server, get a JSON response //
+/** Make JSON request to server, get a JSON response */
 async function serverRequest(endPoint, objectData) {
     try {
         const response = await fetch(serverURL + endPoint, {
@@ -63,7 +63,7 @@ async function serverRequest(endPoint, objectData) {
 
 const actions = {
 
-    // Get all entries from the server and render them //
+    /** Get all entries from the server and render them */
     async displayAllEntries() {
         response = await serverRequest("/lib/all", {});         // make request to server, sending the data
         for (const entryTitle in response) {                    // iterate through response, getting title and data for each entry
@@ -72,7 +72,7 @@ const actions = {
         }
     },
 
-    // Create, store, and render a new entry //
+    /** Create, store, and render a new entry */
     async createEntry(content) {
         let now_time = Date.now();
         let time_str = timestampToStr(now_time)
@@ -161,6 +161,15 @@ async function sendCommand(name, pargs = [], nargs = {}) {
 ///////// Page Setup /////////
 
 window.onload = () => {
-    displayAllEntries();                                        // render all existing entries (stored on server) in the log view
-    commandInput.action = createEntry;                          // set `createEntry` as the callback function for the command bar input event
+    // displayAllEntries();                                        // render all existing entries (stored on server) in the log view
+    // commandBar.action = ???                                  // set `` as the callback function for the command bar input event
+    
+    // TEMPORARY - for testing only:
+    commandBar.action = (inputStr) => {
+        console.log('---------');
+        console.log(inputStr + '\n')
+        let tokens = commandBar.parseStrToTokens(inputStr);    // convert text to tokens
+        let comPrams = commandBar.parseTokensToParams(tokens); // tokens to command parameters
+        console.log(comPrams);
+    }
 };
