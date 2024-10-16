@@ -69,7 +69,7 @@ customElements.define("log-view", class MyElement extends HTMLElement {
     show() {
         let style = window.getComputedStyle(this);
         let sheets = this.shadowRoot.adoptedStyleSheets;
-        if (style.display == "none" && sheets.length > 1) {
+        if (style.display === "none" && sheets.length > 1) {
             sheets.pop();
         }
     }

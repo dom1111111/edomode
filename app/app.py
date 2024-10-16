@@ -1,77 +1,85 @@
+from flask import Flask, request, jsonify, send_from_directory, Response
+from queue import Queue
+import json
 from sys import argv
 from pathlib import Path
-from datetime import datetime
-from typing import Literal, get_args
-from backend import library as usr_lib
-from backend import command_tools as com_tools
-from server import app
+from backend import command_tools
 
-######### Commands #########
 
-cm = com_tools.CommandManager()                                 # create CommandManager object 
+######### Command Setup #########
 
-#########
+cm = command_tools.CommandManager()                         # create CommandManager object to hold all commands
 
-@cm.command(aliases=["time"])
-def get_time():
-    """Get the current date and time."""
-    time_str = datetime.now().strftime("%Y-%b-%d %I:%M:%S %p")
-    print("The current date and time is: " + time_str)
 
-#########
+######### Main Flask Server Code #########
 
-time_units = Literal["s", "m", "h", "second", "minute", "hour", "seconds", "minutes", "hours"]
+app = Flask(__name__)
 
-@cm.command(aliases=["timer"])
-def set_timer(quantity:float, unit:time_units="m"):
-    """Set a timer.
-    - `quantity`: a number (int or float) to specify the quantity of time to se the timer for.
-    - `unit`: the unit of time (seconds, minutes, hours) that the quantity should apply to. If not provided, the default value is 'minutes'.
-    """
-    if quantity <= 0:
-        # UI error print: 
-        print(f'"{quantity}" is an invalid quantity. Must be a number greater than zero.')
-        return
-    unit = unit if unit in get_args(time_units) else 's'        # make sure that unit is within time_units Literal, otherwise set it to 's' (seconds)
-    unit_val = unit[0]                                          # convert any unit string to consistent value by getting only the first letter of the string
-    name_multi = {                                              # matches time unit-value to a readable name and a multiplier to convert it to seconds
-        's': ("second", 1),
-        'm': ("minute", 60),
-        'h': ("hour", 3600)
+### Initial Page Loading ###
+
+@app.route('/')
+def get_main_page():
+    return send_from_directory(app.static_folder, "index.html")
+
+### SSE Functions ###
+
+UI_MESSAGES = Queue()
+
+def format_sse_msg(data:str|dict, event:str=None) -> str:
+    """Converts data to the correct format for Server-Sent-Events (SSE)."""
+    data = json.dumps(data)                                 # convert data to JSON string
+    msg = f'data: {data}\n\n'                               # the beginning of an single piece of data is denoted with `data:`, and the end is denoted with 2 line-breaks
+    if event:
+        msg = f'event: {event}\n{msg}'                      # can specify events to trigger in the client (ex: HTML element events, where `EventListener`s are waiting for them)
+    return msg
+
+def send_ui_action_msg(action:str, data:list):
+    """Send a message to the front-end UI, telling it to perform an action."""
+    assert isinstance(action, str)
+    assert isinstance(data, list)                           # this MUST be a list, representing an array of positional arguments
+    action_msg = {
+        "action": action,
+        "data": data
     }
-    unit_name, mutli = name_multi.get(unit_val)                 # get the readable name and seconds-multiplier from the unit-value
-    unit_name = unit_name if quantity < 1 else unit_name + 's'  # make readable name plural if needed -> add "s" to end of name if quantity is greater than 1
-    sec_time = (quantity * mutli)                               # get the exact time in seconds for the timer by multiplying the quantity by the unit's seconds-multiplier
-    print(f"Timer set for {quantity} {unit_name} from now")
-    print(sec_time)
+    UI_MESSAGES.put(action_msg)
 
-    # create a new event for the time
+@app.route('/stream-ui-msgs')
+def stream_ui_action_msgs():
+    """Use to get UI events via SSE mechanism."""
+    def get_ui_msgs():
+        while True:
+            ui_msg = UI_MESSAGES.get()
+            yield format_sse_msg(ui_msg)
+    return Response(get_ui_msgs(), mimetype='text/event-stream')
 
-    # timer_val = timedelta(seconds=total_seconds)
-    # while timer_val.seconds > 0:
-    #     print(timer_val, end='\r')
-    #     sleep(1)
-    #     timer_val -= timedelta(seconds=1)
-    # message_print("TIMER COMPLETE")
+### Main Endpoint for Command Access
 
-#########
+def get_entries():
+    """Get all entries in a library."""
+    request_data = request.get_json()
+    request_data.update({"lib_dir": lib_path})          # must add library directory into request
+    entries = usr_lib.get_all_entries(**request_data)
+    return jsonify(entries)
 
-# !! MODIFY THESE !!: 
+def new_entry():
+    """Create a new entry in a library."""
+    request_data = request.get_json()
+    request_data.update({"lib_dir": lib_path})
+    # request_data should already be formatted correctly to match function as is!
+    usr_lib.create_entry(**request_data)
+    return jsonify(None)
 
-# def get_entries():
-#     """Get all entries in a library."""
-#     request_data = request.get_json()
-#     request_data.update({"lib_dir": lib_path})          # must add library directory into request
-#     entries = usr_lib.get_all_entries(**request_data)
-#     return jsonify(entries)
-
-# def new_entry():
-#     """Create a new entry in a library."""
-#     request_data = request.get_json()
-#     request_data.update({"lib_dir": lib_path})
-#     # request_data should already be formatted correctly to match function as is!
-#     usr_lib.create_entry(**request_data)
-#     return jsonify(None)
+@app.route('/command', methods=["POST"])
+def execute_command():
+    """Execute a command."""
+    request_data = request.get_json()
+    assert isinstance(request_data, dict), "HTTP requests must be in JSON object format"
+    name = request_data.get('name')
+    args = request_data.get('args')
+    kwargs = request_data.get('kargs')
+    cm.execute_command(name, *args, **kwargs)
+    # DETERMINE IF COMMAND RETURNS ANYTHING OR WILL MAKE REQUESTS LATER
+    return jsonify()
 
 
 ######### App Starting Script #########
@@ -85,19 +93,3 @@ if __name__ == "__main__":
 
     app.run(debug=True)                                 # this is blocking (so must run other stuff in threads)
         # `debug=True` should only be while testing!
-
-#######
-
-# print()
-
-# set_timer(2, 'hours')
-
-# get_time()
-
-# print()
-
-# from pprint import pprint
-
-# pprint(cm._command_map)
-
-# print()

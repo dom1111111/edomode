@@ -145,9 +145,9 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
         
         // Adding event listener and defining function to make the text input behave correctly:
         this._textInput.addEventListener("keyup", (e) => {
-            if (e.key == 'Enter' && !(e.shiftKey) && e.target.value) {
+            if (e.key === 'Enter' && !(e.shiftKey) && e.target.value) {
                 // ^ if the enter key was pressed, while not holding shift, and the input was not empty, then:
-                if (typeof this._action == "function") {
+                if (typeof this._action === "function") {
                     this._action(this._textInput.value);    // call the registered input action function (if there is one), passing the input content as argument
                 }
                 this._textInput.value = "";                 // clear the input element content

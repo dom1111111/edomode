@@ -5,10 +5,11 @@ const logView = document.getElementById("log-view");
 const commandInput = document.getElementById("command-bar");
 
 
+/////////////////////////////////////////////////////////////////////////////////
+
 ///////// Data /////////
 
 const serverURL = window.location.origin;                       // gets the url origin (protocol, hostname, and port) of the server URL (to be used to make further requests)
-
 
 ///////// Support Functions /////////
 
@@ -55,9 +56,10 @@ async function serverRequest(endPoint, objectData) {
     return result
 }
 
+
 /////////////////////////////////////////////////////////////////////////////////
 
-///////// Action Functions /////////
+///////// UI Actions /////////
 
 const actions = {
 
@@ -88,55 +90,69 @@ const actions = {
     }
 };
 
-// // Get all entries from the server and render them //
-// async function displayAllEntries() {
-//     response = await serverRequest("/lib/all", {});             // make request to server, sending the data
-//     for (const entryTitle in response) {                        // iterate through response, getting title and data for each entry
-//         let entryData = response[entryTitle];
-//         logView.addEntry(entryTitle, entryData['time'], null, entryData['content']); // render the entry in the log-view
-//     }
-// }
-
-// // Create, store, and render a new entry //
-// async function createEntry(content) {
-//     let now_time = Date.now();
-//     let time_str = timestampToStr(now_time)
-//     let data = {                                                // create the object with data of the new log entry's properties, and the library it belongs to
-//         title: `Log ${time_str}`,
-//         entry_data: {
-//             time: now_time,
-//             type: "log",
-//             // supers: "",
-//             content: content
-//         }
-//     };
-//     serverRequest("/lib/new", data);                            // send the entry to server for storage
-//     logView.addEntry(data.title, time_str, "", data.entry_data.content);  // render new entry in log-view
-// }
-
-/////////////////////////////////////////////////////////////////////////////////
-
 ///////// Setup for Actions /////////
+
+/** 
+ * Execute UI actions.
+ * 
+ * @param {string} action - the name of the action function to call.
+ * @param {Array} args - an array of all of the positional arguments to pass to the function (must be in order).
+ */
+function doAction(action, args) {
+    func = actions[action];
+    if (func) {
+        func(...args);                                          // only call function if a function was actually taken from actions object
+    }
+    // create log event for the action??
+}
 
 // SSE Setup - This is done so that the server can trigger actions here in the front-end UI
 const actionStream = new EventSource(serverURL + "/stream-ui-msgs");
 
-function actionExecuter(action, data) {
-    func = actions[action];
-    func(data);
-    // create log event for the action??
-}
-// ^ PUT THIS FUNCTION IN onmessage BELOW
-
 actionStream.onmessage = (event) => {
-    // trigger action!
-    //event.data
     // FIGURE OUT WHAT EVENT.DATA IS AND HOW TO EXTRACT VALUES YOU WANT
-    console.log(event.data);
-    //console.log("action:", )
+    // event.data
+    // console.log(event.data);
+    // console.log("action:", )
+
+    let name;
+    let args;
+    doAction(name, args); 
 }
 
 
+/////////////////////////////////////////////////////////////////////////////////
+
+///////// Command Sending /////////
+
+/**
+ * Send a command to be processed and executed.
+ * 
+ * @param {string} name - the name of the command.
+ * @param {Array} pargs - an array of all of the positional arguments (must be in order).
+ * @param {Object} nargs - an object with all of the named arguments.
+ */
+async function sendCommand(name, pargs = [], nargs = {}) {
+    commandData = {                                             // construct the object to contain the command name and arguments
+        name: name,
+        args: pargs,
+        kwargs: nargs,
+    };
+    serverRequest('/command', commandData);                     // send command data to '/command' server endpoint to be executed
+    
+    // __ONLY UNCOMMENT IF YOU WANT TO ESTABLISH ACTION CALLS WITHIN IMMEDIATE REQUEST-RESPONSE CYCLE__
+    // response = await serverRequest('/command', commandData);
+    // if (typeof response === "object") {                         // if the response is an object, then assume that the command's execution called for UI actions to happen
+    //     for (const property in myObj) {
+    //         let name = property;
+    //         let args = myObj[key];
+    //         doAction(name, args)                                // also assumes that the object contains valid action names, and an array for arguments!
+    //     }
+    // }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////
 
 ///////// Listeners /////////
 
