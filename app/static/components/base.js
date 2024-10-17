@@ -101,7 +101,7 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
     /// HTML and CSS Code for this Element ///
 
     static elementHTML = `
-        <input id="text-input" type="text" placeholder="enter command..." maxlength="200">
+        <textarea id="text-input" rows=1 placeholder="enter command... " wrap=></textarea>
     `;
     static elementCSS = `
         :host {
@@ -118,9 +118,10 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
             background-color: transparent;
             font-size: inherit; 
             color: inherit;
+            resize: none;                       /* makes it so that it can't be resized */
         }
 
-        #text-input:focus {                           /* add a strong highlight when in focus */
+        #text-input:focus {                     /* add a strong border highlight when in focus */
             border-color: rgb(55, 176, 94);
         }
     `;
@@ -131,6 +132,7 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
         super();
         this._textInput;                                    // will hold the text input element
         this._action;                                       // the function that should be called when input is entered
+        this._lastScrollHeight;                             // holds the previous scroll height, used for automatically resizing the text input element
     }
 
     connectedCallback() {
@@ -142,22 +144,43 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
         this.shadowRoot.adoptedStyleSheets.push(cssSheet);
 
         this._textInput = this.shadowRoot.getElementById("text-input");     // instantiate attribute for the text input element
-        
-        // Adding event listener and defining function to make the text input behave correctly:
-        this._textInput.addEventListener("keyup", (e) => {
-            if (e.key === 'Enter' && !(e.shiftKey) && e.target.value) {
-                // ^ if the enter key was pressed, while not holding shift, and the input was not empty, then:
-                this._inputEnter()
+
+        // this._textInput.addEventListener("input", (e) => {                  // event listener for automatically resizing the text input element 
+        //     // NOTE: this breaks if you ever let the textarea element be resizable!!!
+        //     // THIS IS BROKEN
+            
+        //     // let style = window.getComputedStyle(this._textInput);
+        //     console.log(e.target.scrollHeight, e.target.scrollHeight);
+        //     console.log(e.target.scrollWidth, e.target.scrollWidth);
+        //     console.log(style.fontSize, typeof style.fontSize);
+        //     console.log(style.font, style.fontFamily);
+
+        //     if (e.target.scrollHeight > this._lastScrollHeight) {
+        //         e.target.rows += 1                                          // if the current scroll height is greater than the last, increase the number of rows by 1
+        //     } else if (e.target.scrollHeight < this._lastScrollHeight) {
+        //         if (e.target.rows > 1) {
+        //             e.target.rows -= 1                                      // otherwise, decrease the rows by 1, but never go below 1
+        //         }
+        //     }
+        //     this._lastScrollHeight = e.target.scrollHeight;                 // update the last scroll height with this current one
+        // });
+
+        this._textInput.addEventListener("keyup", (e) => {                  // event listener for triggering action when input is entered
+            if (e.key === 'Enter' && e.ctrlKey && e.target.value) {
+                // ^ if the enter key was pressed while holding ctrl, and the input was not empty, then:
+                this._triggerAction();
             }
         });
     }
 
-    /** The method that's called when input is entered */
-    _inputEnter() {
+    /** The method that's called when input is entered, triggering action function */
+    _triggerAction() {
         if (typeof this._action === "function") {           // if there is a registered action function,
             this._action(this._textInput.value);            // then call the command action func, and pass in the input element text as argument.
         }
         this._textInput.value = "";                         // clear the input element content
+        // this._textInput.rows = 1;                           // reset its number of rows back to 1
+        // this._lastScrollHeight = this._textInput.scrollHeight;  // and reset the last scroll height with current one
     }
 
     /// Support Methods ///
@@ -217,9 +240,12 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
         let currentNarg;
         let nargs = {};
         
-        for (const tok of tokens.slice(1)) {                // iterate through the token array starting after the first token
+        for (var tok of tokens.slice(1)) {                // iterate through the token array starting after the first token
             if (!tok.startsWith('--')) {                    // if the token doesn't start with `--`,
-                if (!currentNarg) {                         // and there hasn't been any named arguments yet
+                if (Number(tok)) {
+                    tok = Number(tok);                      // then first, if the string token can become a number, make it a number
+                }
+                if (!currentNarg) {                         // and if there hasn't been any named arguments yet
                     pargs.push(tok);                        // then append this token to the positional argument array
                 } else {
                     nargs[currentNarg].push(tok);           // but is there HAS been a named argument, then add this token to the array attached to the named argument key in the object for named args
