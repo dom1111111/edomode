@@ -98,11 +98,11 @@ const commands = {
         preCheck() {                                        // an example of a pre-check - a function that (if provided) will be called before the input parameters are checked
             return true                                     // function will always be tested for truthiness. If the return value of the pre-check is truthy, then the command will be considered "available" for execution
         },
-        inputParams: [                                      // the input parameters that the command accepts (must match the order of action function's parameters)
-            "STR",                                          // Each element must either be a single string denoting a type ("STR" for string, "NUM" for numbers, "ARY" for array), 
-            ["a", "b", "c"],                                // or an array of possible values that its argument could be.
-            {'number': [1, 2, 3]},                          // Also, optional named parameters can be represented by an object with a single key/value, where the key is the parameter name, and the value is the type/possible values for it. The function parameter it corresponds to MUST have a default value (as named arguments are optional and can be excluded)
-            {'flag':true}                                   // Additionally, named parameters can have a single boolean `true` value, in which case a matching named argument just has to be present in the input (will default to false if not present)
+        inputParams: [                                      // an array of the input parameters that the command accepts (must match the order of action function's parameters)
+            ['string_1', "STR"],                            // each element must be an array, whose first value is the parameter name, the second denotes the acceptable value for its argument, and (optional) the third may be its default value, denoting if the parameter is optional or not
+            ['string_2', ["a", "b", "c"]],                  // the acceptable values can either be a string denoting type ("STR" for string, "NUM" for numbers, "ARY" for array, or `true`), or an array of possible values that the argument could be
+            ['number', [1, 2, 3], 2],                       // if a command parameter has a default value, it will mean the argument for it is optional
+            ['flag', true, false]                           // also, if the acceptable value (2nd element) is `true`, then a matching named argument just has to be present in the input (will default to false if not present), so they act like flags
         ],
         action(str1, str2, num=2, flag=false) {             // the main action for the command - a function that is called when the command is executed. *Does not need a return value* (will be ignored if included)
             console.log("this is your first string:", str1);
@@ -127,22 +127,26 @@ const commands = {
     },
 
     timer: {
-        desc: "Set a timer.\n - `quantity`: a number (int or float) to specify the quantity of time to se the timer for.\n - `unit`: the unit of time (seconds, minutes, hours) that the quantity should apply to. If not provided, the default value is 'minutes'.",
+        desc: `Set a timer.
+ - "quantity": a number to specify the quantity of time to set the timer for.
+ - "unit": the unit of time (seconds, minutes, hours) that the quantity should apply to.
+ - "message" (optional): a message to deliver at the timer's completion.`,
         aliases: ["set_timer"],
         inputParams: [
-            ["s", "m", "h", "second", "minute", "hour", "seconds", "minutes", "hours"],
-            'NUM'
+            ['quantity', ["s", "m", "h", "second", "minute", "hour", "seconds", "minutes", "hours"]],
+            ['unit', 'NUM'],
+            ['message', 'STR', '']
         ],
-        action(quantity, unit='m') {
-            console.log(quantity, unit);
-            console.log(this.desc);
+        action(quantity, unit, msg='') {
+            // console.log(quantity, unit);
+            // console.log(msg);
         }
     },
 
     calculate: {
         desc: "Do some math. Type in an expression as numbers together with operator symbols, each separated by whitespace, and get the result. Will follow typical order of operations",
         inputParams: [
-            "ARY",
+            ['ops', "ARY"]
         ],
         action(...ops) {
             exp = "";
@@ -161,7 +165,7 @@ const commands = {
     sum: {
         desc: "Add numbers together and get the result. The numbers should be separated by whitespace, and may have a minus `-` prefix.",
         inputParams: [
-            "ARY",
+            ['numbers', "ARY"]
         ],
         action(...nums) {
             // for each, convert into numbers, discarding anything which isn't a number
@@ -179,14 +183,24 @@ const commands = {
 
 class CommandManager {
     constructor(commands) {
-        // commands must be object
-        this.comMap = commands;
+        // validate command
+        this.commands = validateCommands(commands);
         this.comAliasMap;
         this.comPreCheckMap;
     }
 
+    /// Command Checking/Validation Methods ///
 
-    /// Support Methods ///
+    /**
+     * ...
+     * 
+     * @param {Object} commands - the object containing all commands.
+     * @returns {Object} - the same command object, but after validation.
+     */
+    validateCommands(commands) {
+        // do stuff here to check if commands are valid
+        return commands
+    }
 
     /**
      * Get a boolean as to whether an argument matches the specified acceptable value for that argument.
@@ -205,8 +219,11 @@ class CommandManager {
         return false;                                           // otherwise return false
     }
 
+    /// Command Parameter Parsing Methods ///
+
     /** 
      * Convert a string into an array of tokens, split at whitespace and quoted passages.
+     * 
      * @param {string} str - the string to parsed into tokens.
      * @returns {Array.<string>} - an array with each string token.
      */
@@ -241,31 +258,25 @@ class CommandManager {
     }
 
     /**
-     * Parse an array of string tokens into command properties (command name and arguments). 
+     * Parse an array of string tokens into command properties following general rules.
      * 
-     * The parser will follow these rules:
-     * - The first token will be treated as the command name. The properties of the matching command 
-     * may be used to inform how the rest of the tokens are treated.
+     * These are the rules:
+     * - The first token will be treated as the command name.
      * - All tokens after the first, but prior to a named argument, will be treated as positional 
      * arguments.
-     *     - If the number of positional argument tokens exceeds the number of specified positional parameters 
-     * for the command (of the same name), then the excess tokens will be discarded. But, if the command's 
-     * last positional parameter is specified as an array, then the last and excess tokens will be joined 
-     * into an array.
-     *     - Also, if the command only specifies a single positional parameter which is an array, then all
-     * positional argument tokens will be joined into a single array.
      * - Any tokens starting with a double dash `--` will be treated as named arguments, and any 
      * subsequent tokens (which don't have double dashes themselves) will be considered as values for 
      * those named arguments.
      *     - If a named argument token has no subsequent values (so either immediately followed by 
      * other named argument tokens or it's the last token in the array), then it will be considered as a 
      * boolean flag and be given the value `true`.
-     *     - If the same named argument is present more than once in the tokens, then all value tokens in each
-     * occurrence will be considered for that named argument. (except if they still have no value tokens, then it will just become a boolean as usual).
-     *     - If the corresponding named parameter specifies an array value, then all values for the named argument
-     * will be used, but if not, then only the *first* argument value will be used. 
+     *     - If the same named argument is present more than once in the tokens, then all value tokens 
+     * in each occurrence will be considered for that named argument. (except if they still have no value 
+     * tokens, then it will just become a boolean as usual).
+     * - Also, any argument value which can be converted into a number, will be. 
+     * 
      * @param {Array.<string>} tokens - an array of string tokens.
-     * @returns {Object} - an object organizing the tokens into command properties.
+     * @returns {Object} - an object containing "name": command name string, "pargs": positional arguments array, and "nargs": named arguments object.
      */
     parseTokensToProps(tokens) {
         let name = tokens[0];                               // get the command name from the first token
@@ -280,73 +291,133 @@ class CommandManager {
                 }
                 if (!currentNarg) {                         // and if there hasn't been any named arguments yet
                     pargs.push(tok);                        // then append this token to the positional argument array
-                } else {
-                    nargs[currentNarg].push(tok);           // but if there HAS been a named argument, then add this token to the array attached to the named argument key in the object for named args
-                }
-                } else {                                    // if the token DOES start with `--`,
-                    let nargName = tok.replace('--', '');   // then firstly remove the starting `--` from it,
-                    currentNarg = nargName;                 // set the current named argument to be this token
-                    if (!nargs[currentNarg]) {
-                        nargs[currentNarg] = [];            // if it doesn't already exist, create a new key/value for this in the named args object 
+                } else {                                    // but if there HAS been a named argument, then this token should be one of its values
+                    if (!Array.isArray(nargs[currentNarg])) {   // first check if this is the first value (if so, then named-arg value will NOT be an array)
+                        nargs[currentNarg] = [];            // and make its value an array if needed
                     }
+                    nargs[currentNarg].push(tok);           // then add this token to the named argument value array 
                 }
-        }
-        
-        // Convert positional and named arguments to only positional 
-        // arguments corresponding to the command input parameters:
-        let args = [];                                      // the array to store all arguments
-        const comParams = this.comMap[name].inputParams;    // get the input parameters of the command named `name`
-        if (!comParams || comParams.lenth < 1) {
-            return {name: args};                            // if the command has no input parameters, then immediately return the name and (empty) args
-        }
-        const isObject = (p) => p.constructor === Object;   // a small arrow function to test if something is an Object
-        var namParamsIdx = comParams.findIndex(isObject);   // get the index of the first element in input parameters array which is a named parameter (an Object)
-        if (namParamsIdx === -1) {
-            namParamsIdx = comParams.length;                // if there are no named params (`-1` returned from `findIndex()`), then change the named parameter index to be the length of the array
-        }
-        for (let i = 0; i < namParamsIdx; i++) {            // first iterate through only the positional arguments (index from 0 to first named arg index (which is end of array if none))
-            const pVal = comParams[i];                      // get the specified value of the parameter
-            let arg = pargs[i];                             // get the value of the positional argument at some position (index) as the parameter's position
-            if (!arg) {                                     // if the positional argument at this index is not present (meaning there are less arguments than parameters required!)
-                // raise error, return error message, OR
-                // ADD ERROR IN LOG (or *command bar error message*) saying:
-                // `One or more positional arguments not provided for the "{name}" command`
-                // -> can create try/catch mechanic for command executor!
-            }
-            if (i === namParamsIdx - 1 && pVal === "ARY") { // if this is the last of the positional parameters, and it specifies an array argument ("ARY"),
-                arg = pargs.slice(posParams.length - 1);    // then combine all the remaining positional arg tokens into an single array and set that as the argument value
-            }
-            if (isArgValid(arg, pVal)) {
-                args.push(arg)
-            } else {
-                // ADD ERROR IN LOG (or *command bar error message*) saying:
-                // `One or more positional arguments are invalid for the "{name}" command`
-            }
-        }
-        for (let i = namParamsIdx; i < comParams.length; i++) { // then iterate through only the named arguments (index from first named arg index to end of the array)
-            // if no named parameters are present from input, then this entire block will be skipped
-            const p = comParams[i];                         // get the parameter
-            const [pName, pVal] = Object.entries(p)[0];     // get the name and specified value of the parameter
-            let arg = nargs[pName];                         // get the value of the named argument matching the parameter name
-            if (arg) {
-                if (arg.length < 1) {                       // if the argument array value is empty,
-                    arg = true                              // then change the value to be `true` instead of an empty array
-                } else if (!pVal === "ARY") {               // otherwise if the argument array does have items, but the parameter value does NOT specify an array
-                    arg = arg[0]                            // then change its value to be only the first element in its array
+            } else {                                        // if the token DOES start with `--`,
+                let nargName = tok.replace('--', '');       // then firstly remove the starting `--` from it,
+                currentNarg = nargName;                     // set the current named argument to be this token
+                if (!nargs[currentNarg]) {
+                    nargs[currentNarg] = true;              // if it doesn't already exist, create a new key/value for this in the named args object, with a `true` value
                 }
-                if (isArgValid(arg, pVal)) {
-                    args.push(arg)
-                } else {
-                    // ADD ERROR IN LOG (or *command bar error message*) saying:
-                    // `The value of the named argument "pName" is invalid for the "{name}" command`
-                }
-            } else {
-                args.push(undefined);                       // if the named argument is not present, then just make its value in the overall positional arguments be `undefined`
             }
         }
 
-        return {name: args,}                                // finally, return an object containing the command name and arguments
+        return {name: name, pargs: pargs, nargs: nargs}     // finally return the object with command name, positional arguments, and named arguments
     }
+
+    /**
+     * Convert general arguments into specific arguments for executing a command. Accepts a command 
+     * name, positional arguments, and named arguments, and will return a single array of validated 
+     * arguments needed for that command, and in the correct order (as command functions only accept
+     * positional arguments).
+     * 
+     * The parsing will follow these rules:
+     * - If the parameter corresponding to the last positional argument specifies an array 
+     * or string value, then this last argument and any excess positional arguments will be joined 
+     * into a single array or string value, respectively. Otherwise, any excess positional arguments 
+     * will be discarded. 
+     * - Similarly, if a named argument has several values, and the parameter specifies an array or 
+     * string value, then all values for the named argument will be used, but if not, then only the 
+     * *first* argument value will be used. 
+     * - If there is both a positional argument and named argument which apply to the same parameter,
+     * then the named argument's value will be used.
+     * 
+     * @param {string} name - the name of the command.
+     * @param {Array} pargs - the positional arguments for the command.
+     * @param {Object} nargs - the named arguments for the command.
+     * @returns {Array} - an array of all of the arguments in order, ready to be used for command execution.
+     */
+    parsePropsToArgs(name, pargs, nargs) {
+        let args = [];                                      // the array to store all arguments
+        const comParams = this.commands[name].inputParams;  // get the input parameters of the command named `name`
+        if (!comParams || comParams.length < 1) {
+            return args;                                    // if the command has no input parameters, then immediately return the (empty) args
+        }
+        let lastPargIdx;                                    // stores the index of the last used positional argument
+        
+        // Iterate through each command parameter, getting its index and then name, specified possible values, and default value (if any):
+        for (const [i, [pName, pVal, defVal]] of comParams.entries()) {
+            let a;                                          // The argument to potentially be added to array of arguments.
+            if (nargs.hasOwnProperty(pName)) {              // If there is a named argument with same name as this parameter,
+                a = nargs[pName];                           // then set the arg to have the named argument's value.
+                if (Array.isArray(a)) {                     // but also if the argument is an array, 
+                    if (pVal === "STR") {                   // and the parameter value specifies a string,
+                        a = a.join(' ');                    // then join the argument array into a single string.
+                    } else if (!pVal === "ARY") {           // otherwise if the parameter value does NOT specify a string or an array,
+                        a = a[0];                           // then change argument value to be only the first element in its array.
+                    }
+                }
+            } else if (pargs.hasOwnProperty(i)) {           // Or if there's a value present in the positional argument array at the same index as the command parameter array,
+                a = pargs[i];                               // then set arg to have the positional argument's value.
+                lastPargIdx = i;                            // then update the last-positional-argument-index value to be this index.
+            } else {                                        // If there is neither a named or positional argument for this parameter,
+                if (defVal !== undefined) {                 // but there *is* a default value, then use the default value,
+                    a = defVal;
+                } else {                                    // but if there's no default value (so an argument is REQUIRED), then throw an error
+                    throw new Error(`No argument was provided for the required "${pName}" parameter of the "${name}" command`)                         
+                }
+            }
+            args[i] = a;                                    // then finally add the argument to the argument array at the correct index
+        }
+
+        // Determine if there are extra positional arguments which should be combined and used as an argument value:
+        const lastPargParamVal = comParams[lastPargIdx][1]  // get the specified value for the command parameter at the same index as the last used positional argument
+        if (pargs.length > lastPargIdx + 1) {               // if the last positional argument used was NOT the last element in the array of positional arguments,
+            if (lastPargParamVal === "ARY") {               // and if the corresponding parameter specifies an array ("ARY"),
+                args[lastPargIdx] = pargs.slice(lastPargIdx);           // then combine all the remaining positional arguments into a single array and set that as the argument value.
+            } else if (lastPargParamVal === "STR") {        // but if the corresponding parameter specifies a string ("STR"),
+                args[lastPargIdx] = pargs.slice(lastPargIdx).join(' '); // then combine all the remaining positional arguments into a single string and set that as the argument value.
+            }
+        }
+
+        // Check that each argument is valid
+        for (const [i, [pName, pVal, defVal]] of comParams.entries()) {
+            let a = args[i];
+            if (!isArgValid(a, pVal)) {                      // if the argument is not valid (it matches the parameter's specified value), then throw an error
+                throw new Error(`"${a}" is an invalid argument for the "${pName}" input parameter of the "${name}" command`)                         
+            }
+        }
+
+        return args                                         // finally, return an object containing the command name and arguments
+    }
+
+    /// Main Command Methods ///
+
+    
+
+
+}
+
+///////// Command Executer /////////
+
+/** 
+ * Execute a command. Accepts a string argument, which will parsed into command
+ * parameters, and then used to execute a command function.
+ * 
+ * @param {string} inputStr - the string which will be parsed into command parameters
+ */
+function executeCommand(inputStr) {
+    let tokens = commandBar.parseStrToTokens(inputStr);         // convert text to tokens
+    let {name, pargs, nargs} = commandBar.parseTokensToParams(tokens); // convert token to command parameters
+    let func = commands[name];
+
+    if (!func) {return}                                         // return immediately if no command name is found
+    
+    // convert pargs and nargs to purely positional args
+    // // perhaps by having an index number attached to each one!
+    let args = [];
+
+    func(...args);
+
+    // create an input/command log?
+    // --> right side of the log (like messenger)
+    console.log('---------');
+    console.log(inputStr + '\n')
+    console.log(comPrams);
 }
 
 /////////////////////////////////////////////////////////////////////////////////
