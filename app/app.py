@@ -3,13 +3,7 @@ from queue import Queue
 import json
 from sys import argv
 from pathlib import Path
-from backend import command_tools
-
-
-######### Command Setup #########
-
-cm = command_tools.CommandManager()                         # create CommandManager object to hold all commands
-
+from backend import library as usr_lib
 
 ######### Main Flask Server Code #########
 
@@ -20,6 +14,25 @@ app = Flask(__name__)
 @app.route('/')
 def get_main_page():
     return send_from_directory(app.static_folder, "index.html")
+
+### Main Endpoint Functions ###
+
+@app.route('/lib/all', methods = ['POST'])
+def get_entries():
+    """Get all entries in a library."""
+    request_data = request.get_json()
+    request_data.update({"lib_dir": lib_path})          # must add library directory into request
+    entries = usr_lib.get_all_entries(**request_data)
+    return jsonify(entries)
+
+@app.route('/lib/new', methods = ['POST'])
+def new_entry():
+    """Create a new entry in a library."""
+    request_data = request.get_json()
+    request_data.update({"lib_dir": lib_path})
+    # request_data should already be formatted correctly to match function as is!
+    usr_lib.create_entry(**request_data)
+    return jsonify(None)
 
 ### SSE Functions ###
 
@@ -51,19 +64,6 @@ def stream_ui_action_msgs():
             ui_msg = UI_MESSAGES.get()
             yield format_sse_msg(ui_msg)
     return Response(get_ui_msgs(), mimetype='text/event-stream')
-
-### Main Endpoint for Command Access
-
-@app.route('/command', methods=["POST"])
-def execute_command():
-    """Execute a command."""
-    request_data = request.get_json()
-    assert isinstance(request_data, dict), "HTTP requests must be in JSON object format"
-    name = request_data.get('name')
-    args = request_data.get('args')
-    kwargs = request_data.get('kargs')
-    cm.execute_command(name, *args, **kwargs)
-    return jsonify(None)
 
 ######### App Starting Script #########
 
