@@ -132,38 +132,31 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
         super();
         this._textInput;                                    // will hold the text input element
         this._action;                                       // the function that should be called when input is entered
-        this._lastScrollHeight;                             // holds the previous scroll height, used for automatically resizing the text input element
     }
 
     connectedCallback() {
         this.attachShadow({ mode: "open" });                // create a shadow DOM for this element
         this.shadowRoot.innerHTML = MyElement.elementHTML;  // set the HTML code for this element through its shadow DOM
         // Set the styling for this element:
-        const cssSheet = new CSSStyleSheet();
-        cssSheet.replaceSync(MyElement.elementCSS);
-        this.shadowRoot.adoptedStyleSheets.push(cssSheet);
+        this.styleSheet = new CSSStyleSheet();
+        this.styleSheet.replaceSync(MyElement.elementCSS);
+        this.shadowRoot.adoptedStyleSheets.push(this.styleSheet);
+        // 
+        this._setupTextInput();                             // setup the behaviour for the text input element
+    }
 
+    /** A method to set up all behaviour related to the text input element */
+    _setupTextInput() {
         this._textInput = this.shadowRoot.getElementById("text-input");     // instantiate attribute for the text input element
 
-        // this._textInput.addEventListener("input", (e) => {                  // event listener for automatically resizing the text input element 
-        //     // NOTE: this breaks if you ever let the textarea element be resizable!!!
-        //     // THIS IS BROKEN
-            
-        //     // let style = window.getComputedStyle(this._textInput);
-        //     console.log(e.target.scrollHeight, e.target.scrollHeight);
-        //     console.log(e.target.scrollWidth, e.target.scrollWidth);
-        //     console.log(style.fontSize, typeof style.fontSize);
-        //     console.log(style.font, style.fontFamily);
-
-        //     if (e.target.scrollHeight > this._lastScrollHeight) {
-        //         e.target.rows += 1                                          // if the current scroll height is greater than the last, increase the number of rows by 1
-        //     } else if (e.target.scrollHeight < this._lastScrollHeight) {
-        //         if (e.target.rows > 1) {
-        //             e.target.rows -= 1                                      // otherwise, decrease the rows by 1, but never go below 1
-        //         }
-        //     }
-        //     this._lastScrollHeight = e.target.scrollHeight;                 // update the last scroll height with this current one
-        // });
+        this._textInput.addEventListener("input", (e) => {                  // event listener for automatically resizing the text input element 
+            e.target.rows = 1;                                              // Every time input value changes, rows are reset to 1,
+            while (e.target.scrollHeight > e.target.clientHeight            // and while the scroll height is greater than the element height,
+                && e.target.clientHeight < window.innerHeight/3) {          // but element height is still less than 1/3rd of the viewport (so it can't take up for than a third of the viewing space),
+                e.target.rows += 1;                                         // then increase the number of rows by 1.
+            }
+            // console.log('rows:', e.target.rows, 'height:', e.target.clientHeight, 'scroll-height:', e.target.scrollHeight);
+        });
 
         this._textInput.addEventListener("keyup", (e) => {                  // event listener for triggering action when input is entered
             if (e.key === 'Enter' && e.ctrlKey && e.target.value) {

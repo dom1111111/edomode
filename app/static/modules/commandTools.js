@@ -1,10 +1,42 @@
 
 ///////// Command Class /////////
 
+/**
+ * A class to manage commands.
+ * 
+ * Contains methods for converting string input into the suitable data to select and execute a command
+ * with both positional and named arguments.
+ * 
+ * ## About Command Input:
+ * 
+ * Each command string must have all parameters separated by whitespace, unless surrounded by quotes.
+ * The first parameter will be the command name. Anything after will be positional arguments, and anything 
+ * with the `--` prefix will be considered a named argument. Any parameters after a named argument (but before 
+ * another named argument or the end of the string) will be part of the value for that argument. If there are 
+ * multiple values here, then they will be consolidated as an array or string value for the named argument, 
+ * depending its specified value type. Additionally, any excess positional arguments may be consolidated into 
+ * a single value for the last positional argument, if a string or array type is specified for it.
+ * 
+ * Unlike a typical CLI, ALL command parameters are both positional and named, but some are optional while some
+ * are required. As soon as the first named argument is entered, then everything after must belong to named 
+ * arguments, and nothing further can be entered as positional.
+ * 
+ * Because of this, each command must be in this order:
+ *   1. command name
+ *   2. positional arguments which have single values, separated by whitespace (quoted if space is needed)
+ *   3. any positional argument with multiple values (array / string) (quotes not needed)
+ *   4. named arguments and their values, separated by names with `--` prefix
+ * 
+ */
 class CommandManager {
+    /**
+     * Add an object of commands, validate them, and create further objects to index the commands.
+     * 
+     * @param {Object} commands - The object containing an object for each command. Each one must
+     * have the correct structure.
+     */
     constructor(commands) {
-        // validate command
-        this.commands = this.validateCommands(commands);
+        this.commands = this.validateCommands(commands);    // validate each command, ensuring it has correct structure
         this.comAliasMap;
         this.comPreCheckMap;
     }
@@ -12,7 +44,7 @@ class CommandManager {
     /// Command Checking/Validation Methods ///
 
     /**
-     * ...
+     * Validate an object with commands.
      * 
      * @param {Object} commands - the object containing all commands.
      * @returns {Object} - the same command object, but after validation.
@@ -25,6 +57,16 @@ class CommandManager {
         // then iterate through each command in commands and ensure they have the right keys, etc.
         // also if iterations ends immediately, throw error saying that "the `commands` Object cannot be empty"
         return commands;
+    }
+
+    /** Make sure that a given name exists within the `commands` object.
+     * 
+     * @param {string} name - the name of the command to check.
+     */
+    validateComName(name) {
+        if (!this.commands.hasOwnProperty(name)) {          // if the class `commands` object does not have a command under `name`, then raise an error
+            throw new Error(`There is no available command with the name "${name}"`);
+        }
     }
 
     /**
@@ -156,7 +198,8 @@ class CommandManager {
      * @param {Object} nargs - the named arguments for the command.
      * @returns {Array} - an array of all of the arguments in order, ready to be used for command execution.
      */
-    parsePropsToArgs(name, pargs, nargs) {
+    getUsableCommandArgs(name, pargs, nargs) {
+        this.validateComName(name);                         // ensure that the command name exists within the `command` object
         let args = [];                                      // the array to store all arguments
         const comParams = this.commands[name].inputParams;  // get the input parameters of the command named `name`
         if (!comParams || comParams.length < 1) {
@@ -212,8 +255,32 @@ class CommandManager {
 
     /// Main Command Methods ///
 
-    
+    /**
+     * Execute a command from a given name and arguments.
+     * 
+     * @param {string} name - The name of the command to execute.
+     * @param {Array} args - The arguments to pass to the command.
+     * @returns {any} - the result of the command.
+     */
+    executeCommand(name, args) {
+        this.validateComName(name);                         // ensure that the command name exists within the `command` object
+        const func = this.commands[name].action             // get the command's action function
+        return func(...args);                               // call the action function with the arguments, returning the result
+    }
 
+    /**
+     * Execute a command from a given input string. Will gather command name 
+     * and arguments from the string, and then call the command's action 
+     * function from those.
+     * 
+     * @param {string} inputStr - the string to be parsed into command parameters.
+     */
+    inputToCommandAction(inputStr) {
+        const tokens = this.parseStrToTokens(inputStr);                 // convert text to tokens
+        const {name, pargs, nargs} = this.parseTokensToProps(tokens);   // convert tokens to command parameters
+        const args = this.getUsableCommandArgs(name, pargs, nargs);     // get usable arguments from positional and named arguments
+        return this.executeCommand(name, args);                         // execute the command, returning the result (if any)
+    }
 
 }
 

@@ -70,31 +70,36 @@ const com = new CommandManager(defaultCommands)
 
 ///////// Command Executer /////////
 
+
+function inputToCommandAction(inputStr) {
+
+}
+
 /** 
  * Execute a command. Accepts a string argument, which will parsed into command
  * parameters, and then used to execute a command function.
  * 
  * @param {string} inputStr - the string which will be parsed into command parameters
  */
-function executeCommand(inputStr) {
-    let tokens = commandBar.parseStrToTokens(inputStr);         // convert text to tokens
-    let {name, pargs, nargs} = commandBar.parseTokensToParams(tokens); // convert token to command parameters
-    let func = commands[name];
+// function executeCommand(inputStr) {
+//     let tokens = commandBar.parseStrToTokens(inputStr);         // convert text to tokens
+//     let {name, pargs, nargs} = commandBar.parseTokensToParams(tokens); // convert token to command parameters
+//     let func = commands[name];
 
-    if (!func) {return}                                         // return immediately if no command name is found
+//     if (!func) {return}                                         // return immediately if no command name is found
     
-    // convert pargs and nargs to purely positional args
-    // // perhaps by having an index number attached to each one!
-    let args = [];
+//     // convert pargs and nargs to purely positional args
+//     // // perhaps by having an index number attached to each one!
+//     let args = [];
 
-    func(...args);
+//     func(...args);
 
-    // create an input/command log?
-    // --> right side of the log (like messenger)
-    console.log('---------');
-    console.log(inputStr + '\n')
-    console.log(comPrams);
-}
+//     // create an input/command log?
+//     // --> right side of the log (like messenger)
+//     console.log('---------');
+//     console.log(inputStr + '\n')
+//     console.log(comPrams);
+// }
 
 /////////////////////////////////////////////////////////////////////////////////
 
