@@ -148,10 +148,6 @@ window.onload = () => {
     
     // TEMPORARY - for testing only:
     // commandBar.action = (inputStr) => {
-    //     console.log('---------');
-    //     console.log(inputStr + '\n')
-    //     let tokens = commandBar.parseStrToTokens(inputStr);    // convert text to tokens
-    //     let comPrams = commandBar.parseTokensToParams(tokens); // tokens to command parameters
-    //     console.log(comPrams);
+    //     logView.addEntry({title: 'Title', time: '2024.10.27 12:00 pm', content: inputStr, supers: "random-stuff, tests"});
     // }
 };

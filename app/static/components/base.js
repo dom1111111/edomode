@@ -80,6 +80,28 @@ customElements.define("page-viewer", class MyElement extends HTMLElement {
     pageRight() {
 
     }
+
+    // OLD CODE< MAYBE USE FOR PAGE SHOW/HIDE MECHANIC AS DIFFERENT ONES ARE VIEWED
+
+    // /** Hide this view. */
+    // hide() {
+    //     let style = window.getComputedStyle(this);
+    //     if (style.display !== "none") {
+    //         let sheet = new CSSStyleSheet
+    //         sheet.replaceSync( `:host { display: none }`);
+    //         this.shadowRoot.adoptedStyleSheets.push(sheet);
+    //     }
+    // }
+
+    // /** Show this view. */
+    // show() {
+    //     let style = window.getComputedStyle(this);
+    //     let sheets = this.shadowRoot.adoptedStyleSheets;
+    //     if (style.display === "none" && sheets.length > 1) {
+    //         sheets.pop();
+    //     }
+    // }
+
 }
 );
 
@@ -172,8 +194,7 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
             this._action(this._textInput.value);            // then call the command action func, and pass in the input element text as argument.
         }
         this._textInput.value = "";                         // clear the input element content
-        // this._textInput.rows = 1;                           // reset its number of rows back to 1
-        // this._lastScrollHeight = this._textInput.scrollHeight;  // and reset the last scroll height with current one
+        this._textInput.rows = 1;                           // reset its number of rows back to 1
     }
 
     /// Support Methods ///
