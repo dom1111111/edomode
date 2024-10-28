@@ -80,6 +80,7 @@ class CommandManager {
             (Array.isArray(check) && check.includes(arg)) ||    // if the check value is an array, then the arg value must be present in the array
             (check === "STR" && typeof arg === "string") ||     // if check is "STR", arg must be a string
             (check === "NUM" && typeof arg === "number") ||     // if check is "NUM", arg must be a number
+            (check === "BOO" && typeof arg === "boolean") ||    // if check is "BOO", arg must be a boolean
             (check === "ARY" && Array.isArray(arg)) ||          // if check is "ARY", arg must be an array
             (check === true && arg === true)                    // if check is `true`, arg must be `true`
         ) { return true; }                                      // if any of the above conditions are met, return true
@@ -245,8 +246,8 @@ class CommandManager {
         // Check that each argument is valid
         for (const [i, [pName, pVal, defVal]] of comParams.entries()) {
             let a = args[i];
-            if (!isArgValid(a, pVal)) {                      // if the argument is not valid (it matches the parameter's specified value), then throw an error
-                throw new Error(`"${a}" is an invalid argument for the "${pName}" input parameter of the "${name}" command`)                         
+            if (!this.isArgValid(a, pVal)) {                // if the argument is not valid (it matches the parameter's specified value), then throw an error
+                throw new Error(`"${a}" is an invalid argument for the "${pName}" input parameter of the "${name}" command. The argument must match this pattern: "${pVal}}"`)                         
             }
         }
 

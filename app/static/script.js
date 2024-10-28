@@ -1,6 +1,7 @@
 import "./components/base.js";
 import "./components/views.js";
 import {CommandManager} from "./modules/commandTools.js";
+import {defaultCommands} from "./commands.js";
 
 ///////// Elements /////////
 
@@ -70,36 +71,24 @@ const com = new CommandManager(defaultCommands)
 
 ///////// Command Executer /////////
 
-
-function inputToCommandAction(inputStr) {
-
+/** 
+ * Execute a command from input. Accepts a string, which will lead
+ * to the execution of a command action function.
+ * 
+ * @param {string} inputStr - the string which will be used to select and execute a command.
+ */
+function executeCommandFromInput(inputStr) {
+    // maybe create an input log entry??
+    try {
+        com.inputToCommandAction(inputStr)                  // the entire process is handled by this CommandManager method
+    } catch (err) {                                         // if any errors are thrown in the process, then create an entry with the error message
+        const nowStr = timestampToStr(Date.now());
+        // eventually add code to define styling for the entry, so that it looks more like an error (red, etc.)
+        logView.addEntry({title: 'ERROR', time: nowStr, content: err.message});
+        console.log(err);
+    }
 }
 
-/** 
- * Execute a command. Accepts a string argument, which will parsed into command
- * parameters, and then used to execute a command function.
- * 
- * @param {string} inputStr - the string which will be parsed into command parameters
- */
-// function executeCommand(inputStr) {
-//     let tokens = commandBar.parseStrToTokens(inputStr);         // convert text to tokens
-//     let {name, pargs, nargs} = commandBar.parseTokensToParams(tokens); // convert token to command parameters
-//     let func = commands[name];
-
-//     if (!func) {return}                                         // return immediately if no command name is found
-    
-//     // convert pargs and nargs to purely positional args
-//     // // perhaps by having an index number attached to each one!
-//     let args = [];
-
-//     func(...args);
-
-//     // create an input/command log?
-//     // --> right side of the log (like messenger)
-//     console.log('---------');
-//     console.log(inputStr + '\n')
-//     console.log(comPrams);
-// }
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -143,11 +132,10 @@ function inputToCommandAction(inputStr) {
 ///////// Page Setup /////////
 
 window.onload = () => {
-    // displayAllEntries();                                        // render all existing entries (stored on server) in the log view
-    // commandBar.action = ???                                  // set `` as the callback function for the command bar input event
-    
-    // TEMPORARY - for testing only:
-    // commandBar.action = (inputStr) => {
-    //     logView.addEntry({title: 'Title', time: '2024.10.27 12:00 pm', content: inputStr, supers: "random-stuff, tests"});
-    // }
+    // displayAllEntries();                                    // render all existing entries (stored on server) in the log view
+    commandBar.action = executeCommandFromInput;            // set `executeCommandFromInput` as the callback function for the command bar input event
 };
+
+///////// Exports (used by `commands` module) /////////
+
+export {logView, timestampToStr, serverRequest}

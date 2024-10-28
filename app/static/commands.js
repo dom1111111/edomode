@@ -1,5 +1,6 @@
+import * as mainResources from "./script.js";
 
-///////// Commands /////////
+/////////////////////////////////////////////////////////////////////////////////
 
 const commandsOLD = {
 
@@ -30,42 +31,9 @@ const commandsOLD = {
     }
 }
 
+///////////////////////////
 
-const defaultCommands = {
-
-    example: {
-        desc: "This is an example command. It accepts 2 arguments: a single string, and one of three numbers: 1, 2, or 3.", // the description of the command
-        aliases: ["do_example", "example_go"],              // alternative names that the command can be identified by (should always be in snake case (spaces represented by underscores `_`))
-        preCheck() {                                        // an example of a pre-check - a function that (if provided) will be called before the input parameters are checked
-            return true                                     // function will always be tested for truthiness. If the return value of the pre-check is truthy, then the command will be considered "available" for execution
-        },
-        inputParams: [                                      // an array of the input parameters that the command accepts (must match the order of action function's parameters)
-            ['string_1', "STR"],                            // each element must be an array, whose first value is the parameter name, the second denotes the acceptable value for its argument, and (optional) the third may be its default value, denoting if the parameter is optional or not
-            ['string_2', ["a", "b", "c"]],                  // the acceptable values can either be a string denoting type ("STR" for string, "NUM" for numbers, "ARY" for array, or `true`), or an array of possible values that the argument could be
-            ['number', [1, 2, 3], 2],                       // if a command parameter has a default value, it will mean the argument for it is optional
-            ['flag', true, false]                           // also, if the acceptable value (2nd element) is `true`, then a matching named argument just has to be present in the input (will default to false if not present), so they act like flags
-        ],
-        action(str1, str2, num=2, flag=false) {             // the main action for the command - a function that is called when the command is executed. *Does not need a return value* (will be ignored if included)
-            console.log("this is your first string:", str1);
-            console.log("this is your second string:", str2);
-            console.log("this is your number:", num);
-            if (flag) {
-                console.log("the flag is present");
-            }
-        }
-        // Notes:
-        //  - if a command definition object doesn't need a property, then it should be excluded rather than left blank.
-        //      - ex: if a command has no aliases, then the `aliases` property of the command object should not be included.
-    },
-
-    time: {
-        desc: "Get the current date and time.",
-        aliases: ["get_time"],
-        action() {
-            time_str; //= datetime.now().strftime("%Y-%b-%d %I:%M:%S %p")
-            console.log("The current date and time is: " + time_str)
-        }
-    },
+const INCOMPLETEdefaultCommands = {
 
     timer: {
         desc: `Set a timer.
@@ -137,3 +105,50 @@ const defaultCommands = {
         }
     }
 }
+
+/////////////////////////////////////////////////////////////////////////////////
+
+///////// Commands /////////
+
+const defaultCommands = {
+
+    example: {
+        desc: "This is an example command. It accepts 2 arguments: a single string, and one of three numbers: 1, 2, or 3.", // the description of the command
+        aliases: ["do_example", "example_go"],              // alternative names that the command can be identified by (should always be in snake case (spaces represented by underscores `_`))
+        preCheck() {                                        // an example of a pre-check - a function that (if provided) will be called before the input parameters are checked
+            return true                                     // function will always be tested for truthiness. If the return value of the pre-check is truthy, then the command will be considered "available" for execution
+        },
+        inputParams: [                                      // an array of the input parameters that the command accepts (must match the order of action function's parameters)
+            ['string_1', "STR"],                            // each element must be an array, whose first value is the parameter name, the second denotes the acceptable value for its argument, and (optional) the third may be its default value, denoting if the parameter is optional or not
+            ['string_2', ["a", "b", "c"]],                  // the acceptable values can either be a string denoting type ("STR" for string, "NUM" for numbers, "BOO" for boolean, "ARY" for array), or an array of possible values that the argument could be
+            ['number', [1, 2, 3], 2],                       // if a command parameter has a default value, it will mean the argument for it is optional
+            ['flag', 'BOO', false]                          // also, if the acceptable value (2nd element) is "BOO" and default value (3rd element) is `false`, then a matching named argument will behave like a flag, and just has to be present in the input without any other following values (will be given `true` value if present)
+        ],
+        action(str1, str2, num=2, flag=false) {             // the main action for the command - a function that is called when the command is executed. *Does not need a return value* (will be ignored if included)
+            let message = "This is an example command action.\n" + 
+            "- this is your first string: " + str1 + '\n' +
+            "- this is your second string: " + str2 + '\n' +
+            "- this is your number: " + num;
+            if (flag) {
+                message += "\n- and the flag is present";
+            }
+            mainResources.logView.addEntry({title: "Example Command Output", content: message});
+        }
+        // Notes:
+        //  - if a command definition object doesn't need a property, then it should be excluded rather than left blank.
+        //      - ex: if a command has no aliases, then the `aliases` property of the command object should not be included.
+    },
+
+    time: {
+        desc: "Get the current date and time.",
+        aliases: ["get_time"],
+        action() {
+            const time_str = mainResources.timestampToStr(Date.now());
+            mainResources.logView.addEntry({content: "The current date and time is: " + time_str});
+        }
+    }
+}
+
+///////// Exports /////////
+
+export {defaultCommands};

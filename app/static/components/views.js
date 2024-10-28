@@ -41,9 +41,9 @@ customElements.define("log-view", class MyElement extends HTMLElement {
      */
     addEntry(properties={}) {
         const entry = document.createElement("view-entry"); // create a new entry element
+        entry.setProperties(properties);                    // set the properties of the entry (this should be done BEFORE entry is added!)
         this.shadowRoot.appendChild(entry);                 // add the element to this
-        entry.setProperties(properties);                    // set the properties of the entry (this must be done AFTER entry is added!)
-        this.scroll({left: 0, top: this.scrollHeight, behavior: "smooth"}); // scroll to bottom after new entry is added   
+        this.scrollTo({left: 0, top: this.scrollHeight, behavior: "smooth"}); // scroll to bottom after new entry is added   
     }
 
     /** Remove all entries (reset). */
@@ -227,7 +227,7 @@ customElements.define("view-entry", class MyElement extends HTMLElement {
     /// Action Methods ///
 
     /**
-     * Update and render any of the entry properties. Properties are managed through this element's 
+     * Update any of the entry properties. Properties are managed through this element's 
      * attributes, so this function will set an attribute for each property's name and value.  
      * 
      * @param {Object} props - an object with key value pairs for each property name and value.
