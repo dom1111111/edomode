@@ -1,3 +1,4 @@
+import {CustomElementBase} from "../modules/component-tools.js";
 
 /////////////////////////////////////////////////////////////////////////////////
 // Page-Viewer
@@ -18,7 +19,7 @@
 // - tabs themselves should be spans, NOT buttons. Maybe the "x" can be a button, otherwise that's just a div or another span
 // - the pages are just divs with IDs corresponding to the page title
 
-customElements.define("page-viewer", class MyElement extends HTMLElement {
+customElements.define("page-viewer", class PageViewer extends CustomElementBase {
     
     /// HTML and CSS Code for this Element ///
 
@@ -48,15 +49,6 @@ customElements.define("page-viewer", class MyElement extends HTMLElement {
         super();
         this.pages = [];                                    // this will hold the title strings for all of the pages
         this.currentPage;                                   // this will hold the title string for the page that's currently in focus
-    }
-
-    connectedCallback() {
-        this.attachShadow({ mode: "open" });                // create a shadow DOM for this element
-        this.shadowRoot.innerHTML = MyElement.elementHTML;  // set the HTML code for this element through its shadow DOM
-        // Set the styling for this element:
-        const cssSheet = new CSSStyleSheet();
-        cssSheet.replaceSync(MyElement.elementCSS);
-        this.shadowRoot.adoptedStyleSheets.push(cssSheet);
     }
 
     /// Action Methods ///
@@ -118,7 +110,7 @@ customElements.define("page-viewer", class MyElement extends HTMLElement {
 /////////////////////////////////////////////////////////////////////////////////
 // Command-Bar
 
-customElements.define("command-bar", class MyElement extends HTMLElement {
+customElements.define("command-bar", class CommandBar extends CustomElementBase {
 
     /// HTML and CSS Code for this Element ///
 
@@ -157,13 +149,7 @@ customElements.define("command-bar", class MyElement extends HTMLElement {
     }
 
     connectedCallback() {
-        this.attachShadow({ mode: "open" });                // create a shadow DOM for this element
-        this.shadowRoot.innerHTML = MyElement.elementHTML;  // set the HTML code for this element through its shadow DOM
-        // Set the styling for this element:
-        this.styleSheet = new CSSStyleSheet();
-        this.styleSheet.replaceSync(MyElement.elementCSS);
-        this.shadowRoot.adoptedStyleSheets.push(this.styleSheet);
-        // 
+        super.connectedCallback();                          // set up the shadow DOM, HTML, and CSS for this element  
         this._setupTextInput();                             // setup the behaviour for the text input element
     }
 

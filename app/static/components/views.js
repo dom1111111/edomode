@@ -1,11 +1,12 @@
+import {CustomElementBase} from "../modules/component-tools.js";
+
 /////////////////////////////////////////////////////////////////////////////////
 // Log-View
 
-customElements.define("log-view", class MyElement extends HTMLElement {
+customElements.define("log-view", class LogView extends CustomElementBase {
     
     /// HTML and CSS Code for this Element ///
 
-    static elementHTML = ``;
     static elementCSS = `
         :host {
             flex: 1;
@@ -16,20 +17,11 @@ customElements.define("log-view", class MyElement extends HTMLElement {
             gap: 4px;
         }
     `;
-    
+
     /// Setup/Lifecycle Methods ///
 
     constructor() {
         super();
-    }
-
-    connectedCallback() {
-        this.attachShadow({ mode: "open" });                // create a shadow DOM for this element
-        this.shadowRoot.innerHTML = MyElement.elementHTML;  // set the HTML code for this element through its shadow DOM
-        // Set the styling for this element:
-        const cssSheet = new CSSStyleSheet();
-        cssSheet.replaceSync(MyElement.elementCSS);
-        this.shadowRoot.adoptedStyleSheets.push(cssSheet);
     }
     
     /// Action Methods ///
@@ -48,7 +40,7 @@ customElements.define("log-view", class MyElement extends HTMLElement {
 
     /** Remove all entries (reset). */
     clearAll() {
-        this.shadowRoot.HTMLCode = MyElement.elementHTML;
+        this.shadowRoot.HTMLCode = this.constructor.elementHTML;
     }
     
 });
@@ -69,7 +61,7 @@ customElements.define("log-view", class MyElement extends HTMLElement {
 /////////////////////////////////////////////////////////////////////////////////
 // View Entry
 
-customElements.define("view-entry", class MyElement extends HTMLElement {
+customElements.define("view-entry", class ViewEntry extends CustomElementBase {
 
     /// HTML and CSS Code for this Element ///
 
@@ -162,13 +154,8 @@ customElements.define("view-entry", class MyElement extends HTMLElement {
     }
 
     connectedCallback() {
-        this.attachShadow({ mode: "open" });                // create a shadow DOM for this element
-        this.shadowRoot.innerHTML = MyElement.elementHTML;  // set the HTML code for this element through its shadow DOM
-        // Set the styling for this element:
-        const cssSheet = new CSSStyleSheet();
-        cssSheet.replaceSync(MyElement.elementCSS);
-        this.shadowRoot.adoptedStyleSheets.push(cssSheet);
-    
+        super.connectedCallback();                          // set up the shadow DOM, HTML, and CSS for this element 
+
         this._propElements = {                              // an object to hold each element which displays the entry properties and values
             title: this.shadowRoot.querySelector(".title"),
             time: this.shadowRoot.querySelector(".time"),
@@ -202,7 +189,7 @@ customElements.define("view-entry", class MyElement extends HTMLElement {
     */
     _renderProperties() {
         for (const attr of this.attributes) {   // iterate through all attributes (which represent entry properties), and create elements to represent them.
-            if (MyElement.defaultProps.includes(attr.name)) {           // if the attribute name is one of the default properties,
+            if (this.constructor.defaultProps.includes(attr.name)) {    // if the attribute name is one of the class' default properties,
                 this._propElements[attr.name].innerText = attr.value;   // then change the innerText of the element with the matching name, to be the new value  
             } else {                                                    // otherwise, if its not a default property, render it in the "properties" element
                 // Create element for property name:

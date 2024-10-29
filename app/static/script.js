@@ -1,6 +1,6 @@
 import "./components/base.js";
 import "./components/views.js";
-import {CommandManager} from "./modules/commandTools.js";
+import {CommandManager} from "./modules/command-tools.js";
 import {defaultCommands} from "./commands.js";
 
 ///////// Elements /////////
