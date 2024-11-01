@@ -43,8 +43,32 @@ function strToTimestamp(readableStr) {
     
 }
 
-/** Make JSON request to server, get a JSON response */
-async function serverRequest(endPoint, objectData) {
+/** 
+ * Render a log entry for the error, and print it in the console.
+ * @param {Error} e - The Error object pass in.
+ */
+function displayError(e) {
+    logView.addEntry({
+        title: e.name, 
+        time: timestampToStr(Date.now()), 
+        content: e.message, 
+        type: "error"
+    });
+    console.error(e);
+}
+
+/**
+ * Make a JSON POST request to server, get a JSON response.
+ * 
+ * This also will throw an Error if the server should return a 
+ * response object which has a single "ERROR" key, and will expect
+ * the corresponding value to be a string for the error message.
+ * 
+ * @param {string} endPoint - the relative path of the server endpoint to make the request at.
+ * @param {Object} data - an object containing the data for the POST request body.
+ * @returns 
+ */
+async function serverRequest(endPoint, data) {
     try {
         const response = await fetch(serverURL + endPoint, {
             method: "POST",                                 // makes a POST method (rather than GET)
@@ -52,13 +76,21 @@ async function serverRequest(endPoint, objectData) {
             headers: {
                 "Content-Type": "application/json"          // lets server know that this is JSON
             },
-            body: JSON.stringify(objectData)                // `JSON.stringify` converts object into JSON string
+            body: JSON.stringify(data)                      // `JSON.stringify` converts object into JSON string
         });
         var result = await response.json();                 // this will become an object
+        // Handle any errors returned by the server:
+        // if the response is an object with only a single "ERROR" key, throw a "server" error:
+        if (result.constructor === Object && Object.keys(result).toString() === "ERROR") {
+            const svrErrMsg = "An error occurred on the server: \n" + result["ERROR"]   // get the error message from the value of the result "ERROR" object
+            const serverError = new Error(svrErrMsg)        // create a new error object, and set its message
+            serverError.name = "ServerError";               // set the name for the error
+            throw serverError;                              // throw the error
+        }
+        return result;
     } catch (error) {
-        console.log("Error:", error);
+        displayError(error);                                // if any errors happen, then create a log entry for it
     };
-    return result
 }
 
 
@@ -66,8 +98,9 @@ async function serverRequest(endPoint, objectData) {
 
 ///////// Command Manager /////////
 
-const com = new CommandManager(defaultCommands)
-
+const com = new CommandManager(defaultCommands, displayError);
+    // Create new `CommandManager` object, passing in the command object 
+    // and a command execution error handler function.
 
 ///////// Command Executer /////////
 
@@ -81,11 +114,8 @@ function executeCommandFromInput(inputStr) {
     // maybe create an input log entry??
     try {
         com.inputToCommandAction(inputStr)                  // the entire process is handled by this CommandManager method
-    } catch (err) {                                         // if any errors are thrown in the process, then create an entry with the error message
-        const nowStr = timestampToStr(Date.now());
-        // eventually add code to define styling for the entry, so that it looks more like an error (red, etc.)
-        logView.addEntry({title: 'ERROR', time: nowStr, content: err.message});
-        console.log(err);
+    } catch (error) {
+        displayError(error);                                // if any errors are thrown in the process, then create an entry with the error message
     }
 }
 

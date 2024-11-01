@@ -146,6 +146,13 @@ const defaultCommands = {
             const time_str = mainResources.timestampToStr(Date.now());
             mainResources.logView.addEntry({content: "The current date and time is: " + time_str});
         }
+    },
+
+    "error-test": {
+        action() {
+            let x = oof;
+            console.log(x);
+        }
     }
 }
 

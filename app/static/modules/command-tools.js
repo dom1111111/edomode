@@ -31,12 +31,14 @@
 class CommandManager {
     /**
      * Add an object of commands, validate them, and create further objects to index the commands.
+     * Optionally pass in a function to handle command action-function execution errors.
      * 
-     * @param {Object} commands - The object containing an object for each command. Each one must
-     * have the correct structure.
+     * @param {Object} commands - The object containing an object for each command. Each one must have the correct structure.
+     * @param {Function} comExecErrorHandler - A function to handle command execution errors.
      */
-    constructor(commands) {
+    constructor(commands, comExecErrorHandler = (e) => {}) {
         this.commands = this.validateCommands(commands);    // validate each command, ensuring it has correct structure
+        this.handleComExecError = comExecErrorHandler;      // holds the function to handle command execution errors (can be defined externally)
         this.comAliasMap;
         this.comPreCheckMap;
     }
@@ -257,22 +259,27 @@ class CommandManager {
     /// Main Command Methods ///
 
     /**
-     * Execute a command from a given name and arguments.
+     * Execute a command action function from a given name and arguments. Also catch and 
+     * modify any errors which occur, handling them with the `handleComExecError` function.
      * 
      * @param {string} name - The name of the command to execute.
      * @param {Array} args - The arguments to pass to the command.
-     * @returns {any} - the result of the command.
      */
-    executeCommand(name, args) {
+    async executeCommand(name, args) {
         this.validateComName(name);                         // ensure that the command name exists within the `command` object
         const func = this.commands[name].action             // get the command's action function
-        return func(...args);                               // call the action function with the arguments, returning the result
+        try {
+            await func(...args);                            // call the action function with the arguments
+        } catch (error) {
+            error.message = `${error.name}: ${error.message}`
+            error.name = `Command Execution Error from "${name}" Command`;
+            this.handleComExecError(error) ;                // if the function execution results in an error, add extra data to it, and then handle it with the handleComExecError function
+        }
     }
 
     /**
-     * Execute a command from a given input string. Will gather command name 
-     * and arguments from the string, and then call the command's action 
-     * function from those.
+     * Execute a command from a given input string. Will gather command name and 
+     * arguments from the string, and then call the command's action function from those.
      * 
      * @param {string} inputStr - the string to be parsed into command parameters.
      */
@@ -280,7 +287,7 @@ class CommandManager {
         const tokens = this.parseStrToTokens(inputStr);                 // convert text to tokens
         const {name, pargs, nargs} = this.parseTokensToProps(tokens);   // convert tokens to command parameters
         const args = this.getUsableCommandArgs(name, pargs, nargs);     // get usable arguments from positional and named arguments
-        return this.executeCommand(name, args);                         // execute the command, returning the result (if any)
+        this.executeCommand(name, args);                                // execute the command (no commands action functions should return anything, so nothing needs to be returned here)
     }
 
 }
