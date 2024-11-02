@@ -1,17 +1,8 @@
-import * as mainResources from "./script.js";
+import * as MAIN from "./script.js";
 
 /////////////////////////////////////////////////////////////////////////////////
 
 const commandsOLD = {
-
-    /** Get all entries from the server and render them */
-    async displayAllEntries() {
-        response = await serverRequest("/lib/all", {});     // make request to server, sending the data
-        for (const entryTitle in response) {                // iterate through response, getting title and data for each entry
-            let entryData = response[entryTitle];
-            logView.addEntry(entryTitle, entryData['time'], null, entryData['content']);    // render the entry in the log-view
-        }
-    },
 
     /** Create, store, and render a new entry */
     async createEntry(content) {
@@ -125,35 +116,54 @@ const defaultCommands = {
             ['flag', 'BOO', false]                          // also, if the acceptable value (2nd element) is "BOO" and default value (3rd element) is `false`, then a matching named argument will behave like a flag, and just has to be present in the input without any other following values (will be given `true` value if present)
         ],
         action(str1, str2, num=2, flag=false) {             // the main action for the command - a function that is called when the command is executed. *Does not need a return value* (will be ignored if included)
-            let message = "This is an example command action.\n" + 
+            let msg = "Example Command Output\n\n" +
+            "This is an example command action.\n" + 
             "- this is your first string: " + str1 + '\n' +
             "- this is your second string: " + str2 + '\n' +
             "- this is your number: " + num;
             if (flag) {
-                message += "\n- and the flag is present";
+                msg += "\n- and the flag is present";
             }
-            mainResources.logView.addEntry({title: "Example Command Output", content: message});
+            MAIN.createLogEntry(msg, `"example" command`);
         }
         // Notes:
         //  - if a command definition object doesn't need a property, then it should be excluded rather than left blank.
         //      - ex: if a command has no aliases, then the `aliases` property of the command object should not be included.
     },
 
+    "test-command-error": {
+        action() {
+            let x = oof;
+            MAIN.createLogEntry(x);
+        }
+    },
+
+    "test-server-error": {
+        async action() {
+            response = await MAIN.serverRequest("/lib/error-test", {});
+            MAIN.createLogEntry(response);
+        }
+    },
+
     time: {
         desc: "Get the current date and time.",
         aliases: ["get_time"],
         action() {
-            const time_str = mainResources.timestampToStr(Date.now());
-            mainResources.logView.addEntry({content: "The current date and time is: " + time_str});
+            MAIN.createLogEntry(
+                "The current date and time is: " + MAIN.timestampToStr(Date.now()),
+                `"time" command`
+            );
         }
     },
-
-    "error-test": {
-        action() {
-            let x = oof;
-            console.log(x);
-        }
-    }
+    
+    // /** Get all entries from the server and render them */
+    // async displayAllEntries() {
+    //     response = await serverRequest("/lib/all", {});     // make request to server, sending the data
+    //     for (const entryTitle in response) {                // iterate through response, getting title and data for each entry
+    //         let entryData = response[entryTitle];
+    //         logView.addEntry(entryTitle, entryData['time'], null, entryData['content']);    // render the entry in the log-view
+    //     }
+    // }
 }
 
 ///////// Exports /////////

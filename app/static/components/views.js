@@ -29,13 +29,19 @@ customElements.define("log-view", class LogView extends CustomElementBase {
     /**
      * Create a new entry and append it to this view.
      * 
-     * @param {Object} properties - an object containing a key/value for all properties that the entry should remember and display.
-     */
-    addEntry(properties={}) {
-        const entry = document.createElement("view-entry"); // create a new entry element
-        entry.setProperties(properties);                    // set the properties of the entry (this should be done BEFORE entry is added!)
-        this.shadowRoot.appendChild(entry);                 // add the element to this
-        this.scrollTo({left: 0, top: this.scrollHeight, behavior: "smooth"}); // scroll to bottom after new entry is added   
+     * @param {string} type - the type of event the log entry represents (should only be one of several set values (defined elsewhere)).
+     * @param {string} title - (optional) an overall title for the event.
+     * @param {string} time - a readable string of the time the event occurred.
+     * @param {string} content - a message explaining the event.
+     */ 
+    addEntry(type, title="", time, content) {
+        const entry = document.createElement("log-event-entry");                // create a new log-event-entry element
+        this.shadowRoot.appendChild(entry);                                     // add the element to this
+        entry.setAttribute("type", type);                                       // set the properties of the entry (this should be done AFTER entry is added!)
+        entry.setAttribute("title", title);              
+        entry.setAttribute("time", time);
+        entry.setAttribute("content", content);
+        this.scrollTo({left: 0, top: this.scrollHeight, behavior: "smooth"});   // scroll to bottom after new entry is added   
     }
 
     /** Remove all entries (reset). */
@@ -59,7 +65,108 @@ customElements.define("log-view", class LogView extends CustomElementBase {
 
 
 /////////////////////////////////////////////////////////////////////////////////
-// View Entry
+
+///////////////////////////
+// Log View Event Entry
+
+customElements.define("log-event-entry", class LogEventEntry extends CustomElementBase {
+
+    /// HTML and CSS Code for this Element ///
+
+    static elementHTML = `
+        <div class="header">
+            <span class="title"></span>    
+            <span class="time"></span>
+        </div>
+        <p class="content"></p>
+    `;
+    static elementCSS = `
+        :host {
+            border-radius: 3px;         /* gives the border rounded corners */
+            padding: 2px;
+            background-color: rgba(255, 255, 255, 0.35);
+
+            animation-name: slidegrow;  /* spawn animation: */
+            animation-duration: 0.2s;
+        }
+        
+        @keyframes slidegrow {          /* spawn animation code */
+            0% {
+                translate: -100vw 0;    /* start completely off screen from the left */
+                scale: 0%;
+            }
+            100% {
+                translate: 0 0;
+                scale: 100%;
+            }
+        }
+
+        .header {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            padding: 5px 5px 0;
+        }
+        
+        .header > * {
+            font-size: 0.75em;
+            color: #314551;
+        }
+        
+        .header > .title {
+            font-weight: bold;
+        }
+
+        .content {
+            margin: 1rem;
+        }
+    `;
+
+    /// Setup/Lifecycle Methods ///
+     
+    static observedAttributes = ["type", "title", "time", "content"]; // the attributes which correspond to log entry property names 
+
+    constructor() {
+        super();
+    }
+
+    connectedCallback() {
+        super.connectedCallback();                          // set up the shadow DOM, HTML, and CSS for this element 
+    
+        this._propElements = {                              // an object to hold each element which displays the entry properties and values
+            title: this.shadowRoot.querySelector(".title"),
+            time: this.shadowRoot.querySelector(".time"),
+            content: this.shadowRoot.querySelector(".content"),
+        }
+    }
+
+    /** 
+     * The standard custom element lifecycle callback for setting the value of 
+     * *observed* attributes. The value set will become the `innerText` of the 
+     * child-element representing the property corresponding to the attribute name. 
+    */
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (newValue !== oldValue) {                        // only proceed if the new value is actually different from the old value 
+            if (name === "type") {
+                // ... adjust style based on type
+            } else {
+                this._propElements[name].innerText = newValue;  // set the inner text of the child-element with the matching class name 
+            }
+        }
+    }
+
+    /// Action Methods ///
+
+    /** Completely delete this element. Will be removed from it's parent node.  */
+    delete() {
+        this.remove();
+    }
+
+});
+
+
+///////////////////////////
+// General View Entry
 
 customElements.define("view-entry", class ViewEntry extends CustomElementBase {
 

@@ -44,7 +44,6 @@ def handle_exception(func):
                 - code: `{err_info['code']}` 
                 - line: {err_info['line']}
                 - file: "${err_info['file']}"
-                
                 """)                                # then create a message to display some of the exception data
             return jsonify({"ERROR": err_msg})      # return the message as JSON -> any object returned which has a single "ERROR" key will be correctly handled by front-end as an error
     return wrapper
@@ -64,7 +63,7 @@ def get_main_page():
 
 @app.route('/lib/error-test', methods = ['POST'])
 @handle_exception
-def test_stuff():
+def error_test():
     x = 3 / 0
     return jsonify(x)
 
