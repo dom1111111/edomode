@@ -11,19 +11,19 @@ from backend import library as usr_lib
 
 ######### Support Functions #########
 
-APP_DIR = Path(__file__).parent                     # the path of the application directory 
+APP_DIR = Path(__file__).parent                             # the path of the application directory 
     # (gotten from this script, which should ALWAYS be in the top level of the project dir)
 
 def get_exception_info(e: Exception) -> dict:
     """Get a dictionary containing information about an exception.
     All values will be a string or an int."""
-    tb = traceback.extract_tb(e.__traceback__)[-1]  # get the last entry of traceback summary of the exception (which is the exact source of the error)
-    err_info = {                                    # a dictionary to hold information about the error/exception that occured
-        'code':     tb[3],                          # the line of code that the error occurred at (third element of the traceback entry)
-        'name':     e.__class__.__name__,           # the name/type of the error
-        'message':  str(e),                         # the error message
-        'file':     Path(tb[0]).relative_to(APP_DIR.parent),    # the relative path of the file the error occurred in (first element of the traceback entry)
-        'line':     tb[1],                          # the line number of the code in the file that the error occured at (second element of the traceback entry)
+    tb = traceback.extract_tb(e.__traceback__)[-1]          # get the last entry of traceback summary of the exception (which is the exact source of the error)
+    err_info = {                                            # a dictionary to hold information about the error/exception that occured
+        'code':     tb[3],                                  # the line of code that the error occurred at (third element of the traceback entry)
+        'name':     e.__class__.__name__,                   # the name/type of the error
+        'message':  str(e),                                 # the error message
+        'file':     Path(tb[0]).relative_to(APP_DIR.parent),# the relative path of the file the error occurred in (first element of the traceback entry)
+        'line':     tb[1],                                  # the line number of the code in the file that the error occured at (second element of the traceback entry)
         'tb_str':   ''.join(traceback.format_exception(e))  # a string of the full traceback for the exception
     }
     return err_info
@@ -33,19 +33,19 @@ def handle_exception(func):
     in a try/except block (so the function should be decorated with flask
     app object AFTER this). If an exception occurs, will return a JSON 
     response containing error information which the front-end understands."""
-    @wraps(func)                                    # this is needed, otherwise Flask throws an error!    
+    @wraps(func)                                            # this is needed, otherwise Flask throws an error!    
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except Exception as e:                      # If exception is raised during execution of wrapped function,
-            err_info = get_exception_info(e)        # then extract data from the exception
+        except Exception as e:                              # If exception is raised during execution of wrapped function,
+            err_info = get_exception_info(e)                # then extract data from the exception
             err_msg = dedent(f"""
                 {err_info['name']}: {err_info['message']}
                 - code: `{err_info['code']}` 
                 - line: {err_info['line']}
                 - file: "${err_info['file']}"
-                """)                                # then create a message to display some of the exception data
-            return jsonify({"ERROR": err_msg})      # return the message as JSON -> any object returned which has a single "ERROR" key will be correctly handled by front-end as an error
+                """)                                        # then create a message to display some of the exception data
+            return jsonify({"ERROR": err_msg})              # return the message as JSON -> any object returned which has a single "ERROR" key will be correctly handled by front-end as an error
     return wrapper
 
 
@@ -53,27 +53,29 @@ def handle_exception(func):
 
 app = Flask(__name__)
 
-### Initial Page Loading ###
+###### Initial Page Loading ######
 
 @app.route('/')
 def get_main_page():
     return send_from_directory(app.static_folder, "index.html")
 
-### Main Endpoint Functions ###
+###### Endpoint Functions ######
 
-@app.route('/lib/error-test', methods = ['POST'])
+@app.route('/error-test', methods = ['POST'])
 @handle_exception
 def error_test():
     x = 3 / 0
     return jsonify(x)
 
-@app.route('/lib/all', methods = ['POST'])
+### Library Access ###
+
+@app.route('/lib/recent', methods = ['POST'])
 @handle_exception
-def get_entries():
+def get_n_recent_entries():
     """Get all entries in a library."""
     request_data = request.get_json()
-    request_data.update({"lib_dir": lib_path})      # must add library directory into request
-    entries = usr_lib.get_all_entries(**request_data)
+    request_data.update({"lib_dir": lib_path})              # must add library directory into request
+    entries = usr_lib.get_n_recent_entries(**request_data)  # get the `n` most recent entries
     return jsonify(entries)
 
 @app.route('/lib/new', methods = ['POST'])

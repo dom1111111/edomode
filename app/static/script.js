@@ -59,7 +59,10 @@ function strToTimestamp(readableStr) {
  * @param {Object} data - an object containing the data for the POST request body.
  * @returns 
  */
-async function serverRequest(endPoint, data) {
+async function serverRequest(endPoint, data={}) {
+    if (data.constructor !== Object) {
+        throw new TypeError("The 'data' argument must be an Object");
+    }
     const response = await fetch(serverURL + endPoint, {
         method: "POST",                                 // makes a POST method (rather than GET)
         mode: "cors",
@@ -110,7 +113,7 @@ function createLogEntry(content, title="", type="message", time=Date.now()) {
     const typeVals = ["message", "input", "error"];         // the possible values for the 'type' property
     if (!typeVals.includes(type)) {                         // ensure that 'type' value is valid
         throw new Error(
-            `"${type}" is an invalid value for a log entry 'type' property.` +  
+            `"${type}" is an invalid value for a log entry 'type' property. ` +  
             `Must be one of the following: ${typeVals.join(' ')}`
         );
     }
@@ -127,7 +130,14 @@ function createLogEntry(content, title="", type="message", time=Date.now()) {
     logView.addEntry(type, title, timestampToStr(time), content)  // render new entry in log-view
 }
 
-
+/** Get `n` most recent entries from the server and render them */
+async function displayRecentEntries() {
+    const data = {'n': 50}                                      // setting 50 as default number of entries to get   
+    const response = await serverRequest("/lib/recent", data);  // make request to server, sending the data
+    for (const entry of response) {                             // iterate through response, getting each entry
+        createLogEntry(entry['content'], entry['title'], entry['type'], entry['time']); // render the entry in the log-view
+    }
+}
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -171,7 +181,7 @@ async function executeCommandFromInput(inputStr) {
 ///////// Page Setup /////////
 
 window.onload = () => {
-    // displayAllEntries();                                    // render all existing entries (stored on server) in the log view
+    displayRecentEntries();                                 // render most recent existing entries (stored on server) in the log view
     commandBar.action = executeCommandFromInput;            // set `executeCommandFromInput` as the callback function for the command bar input event
 };
 

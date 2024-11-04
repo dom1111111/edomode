@@ -140,7 +140,7 @@ const defaultCommands = {
 
     "test-server-error": {
         async action() {
-            response = await MAIN.serverRequest("/lib/error-test", {});
+            response = await MAIN.serverRequest("/error-test", {});
             MAIN.createLogEntry(response);
         }
     },
@@ -194,14 +194,6 @@ const defaultCommands = {
         }
     },
     
-    // /** Get all entries from the server and render them */
-    // async displayAllEntries() {
-    //     response = await serverRequest("/lib/all", {});     // make request to server, sending the data
-    //     for (const entryTitle in response) {                // iterate through response, getting title and data for each entry
-    //         let entryData = response[entryTitle];
-    //         logView.addEntry(entryTitle, entryData['time'], null, entryData['content']);    // render the entry in the log-view
-    //     }
-    // }
 }
 
 ///////// Exports /////////

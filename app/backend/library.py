@@ -198,6 +198,14 @@ def _does_pattern_match_value(pattern:str, value:str|int|float):
     
     return ptrn_matches                         # finally, return the number of pattern matches
 
+def _convert_entries_to_list(entries:dict) -> list[dict]:
+    """Convert a dictionary of entries to a list of entries, where each entry
+    is a dictionary with all of the existing entry properties, but with an added
+    "title" property coming from the initial dictionary's key."""
+    return [dict({"title": key}, **val) for key, val in entries.items()]
+        # ^ Iterate through each key, value of the `entries` dict add a new dict to
+        # the list which contains the existing value dict but also add a "title" 
+        # property to the new dict, which comes from the key.
 
 #########################################################
 ######### Main Functions for Library User Files #########
@@ -295,14 +303,24 @@ def delete_entry(lib_dir:str, title:str):
 def get_all_entries(lib_dir:str):
     """Get all of the entries in a library."""
     lib_path = _validate_library(lib_dir)       # ensure library directory is set up properly
-    return _read_database(lib_path)             # read database file and return entries dict
+    return _convert_entries_to_list(_read_database(lib_path))   # get entries dict from reading database file, convert to list, and return
+
+def get_n_recent_entries(lib_dir:str, n:int):
+    """Get a maximum of `n` most recent entries in a library."""
+    lib_path = _validate_library(lib_dir)       # ensure library directory is set up properly
+    entries = _read_database(lib_path)          # read database file and get entries dict
+    entries_list = _convert_entries_to_list(entries)    # convert the entries dictionary to a list 
+    if len(entries_list) <= n:
+        return entries_list                     # if the total number of entries is less than `n`, just return all of them
+    return entries_list[-n:]                    # otherwise return the last `n` entries
 
 def get_entries_by_title(lib_dir:str, titles:list[str]):
     """Get a dictionary of entries whose title's match those in the `titles` list arg."""
     lib_path = _validate_library(lib_dir)       # ensure library directory is set up properly
     entries = _read_database(lib_path)          # read database file and return entries dict
-    # create and return a new dictionary containing only those entries whose title's are in `titles` list
-    return {{title:data} for title, data in entries.keys() if title in titles}
+    # Create and return a new list containing only those entries whose title's are in `titles` list
+    # and also add the title as as a "title" property to each entry dict in the list:
+    return [dict({'title':title}, **data) for title, data in entries.items() if title in titles]
     
 def get_entries_by_query(lib_dir:str):
 
