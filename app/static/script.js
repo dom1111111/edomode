@@ -80,6 +80,23 @@ async function serverRequest(endPoint, data) {
     return result;
 }
 
+/** 
+ * The primary function for handling errors for contexts in which the user
+ * should be most aware of them (executing commands mostly). 
+ * Render a log entry for the error, and print it in the console.
+ * 
+ * @param {Error} e - The Error object to display from.
+ */
+function displayError(e) {
+    createLogEntry(e.message, e.name, "error")
+    console.error(e);
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////
+
+///////// Internal Actions /////////
+
 /**
  * Create a new log event entry. Will store the entry in the backend and render it in the log view.
  * 
@@ -110,17 +127,6 @@ function createLogEntry(content, title="", type="message", time=Date.now()) {
     logView.addEntry(type, title, timestampToStr(time), content)  // render new entry in log-view
 }
 
-/** 
- * The primary function for handling errors for contexts in which the user
- * should be most aware of them (executing commands mostly). 
- * Render a log entry for the error, and print it in the console.
- * 
- * @param {Error} e - The Error object to display from.
- */
-function displayError(e) {
-    createLogEntry(e.message, e.name, "error")
-    console.error(e);
-}
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -154,39 +160,6 @@ async function executeCommandFromInput(inputStr) {
         displayError(error);                                        // display error (create entry, print in console)
     }
 }
-
-
-/////////////////////////////////////////////////////////////////////////////////
-
-///////// Setup for Actions /////////
-
-// /** 
-//  * Execute UI actions.
-//  * 
-//  * @param {string} action - the name of the action function to call.
-//  * @param {Array} args - an array of all of the positional arguments to pass to the function (must be in order).
-//  */
-// function doAction(action, args) {
-//     func = actions[action];
-//     if (func) {
-//         func(...args);                                          // only call function if a function was actually taken from actions object
-//     }
-//     // create log event for the action??
-// }
-
-// // SSE Setup - This is done so that the server can trigger actions here in the front-end UI
-// const actionStream = new EventSource(serverURL + "/stream-ui-msgs");
-
-// actionStream.onmessage = (event) => {
-//     // FIGURE OUT WHAT EVENT.DATA IS AND HOW TO EXTRACT VALUES YOU WANT
-//     // event.data
-//     // console.log(event.data);
-//     // console.log("action:", )
-
-//     let name;
-//     let args;
-//     doAction(name, args); 
-// }
 
 
 /////////////////////////////////////////////////////////////////////////////////

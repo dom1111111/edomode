@@ -19,7 +19,7 @@ _ILLEGAL_FILE_CHARS = '<>:"/\|?*'
 _BASE_PROPERTIES = {
     # 'title': str,                               # 'title' is the identifying property - must be unique for all entries across all types
     'time': int,                                # 'time' will be a timestamp (seconds since the Epoch) for creation time
-    'type': ("log", "note", "task"),            # 'type' can be one 3 things: "log", "note", or "task"
+    'type': ("note", "page", "task")            # 'type' can be one the values in this tuple
 }
 
 
