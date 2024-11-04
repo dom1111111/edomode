@@ -113,7 +113,7 @@ const defaultCommands = {
             ['string_1', "STR"],                            // each element must be an array, whose first value is the parameter name, the second denotes the acceptable value for its argument, and (optional) the third may be its default value, denoting if the parameter is optional or not
             ['string_2', ["a", "b", "c"]],                  // the acceptable values can either be a string denoting type ("STR" for string, "NUM" for numbers, "BOO" for boolean, "ARY" for array), or an array of possible values that the argument could be
             ['number', [1, 2, 3], 2],                       // if a command parameter has a default value, it will mean the argument for it is optional
-            ['flag', 'BOO', false]                          // also, if the acceptable value (2nd element) is "BOO" and default value (3rd element) is `false`, then a matching named argument will behave like a flag, and just has to be present in the input without any other following values (will be given `true` value if present)
+            ['flag', "BOO", false]                          // also, if the acceptable value (2nd element) is "BOO" and default value (3rd element) is `false`, then a matching named argument will behave like a flag, and just has to be present in the input without any other following values (will be given `true` value if present)
         ],
         action(str1, str2, num=2, flag=false) {             // the main action for the command - a function that is called when the command is executed. *Does not need a return value* (will be ignored if included)
             let msg = "Example Command Output\n\n" +
@@ -146,13 +146,51 @@ const defaultCommands = {
     },
 
     time: {
-        desc: "Get the current date and time.",
-        aliases: ["get_time"],
+        desc: "Get the current local time.",
+        inputParams: [
+            ['exact', "BOO", false]                         // optional parameter, will add seconds to time if included
+        ],
+        action(exact=false) {
+            // Create new Date object from a time stamp of the current time:
+            const time = new Date(Date.now());
+            // Get hours, converting to 12-h time
+            let hours = time.getHours();
+            let period = 'a.m.';
+            if (hours > 12) {
+                period = "p.m.";
+                hours -= 12;
+            } else if (hours === 0) {
+                hours = 12;
+            }
+            // Create the time string, adding seconds if `exact` is true, and padding mins and secs with 0 if only 1 digit long:
+            let timeStr = String(hours) + ":" + String(time.getMinutes()).padStart(2, "0");
+            if (exact) {
+                timeStr += ":" + String(time.getSeconds()).padStart(2, "0");
+            }
+            timeStr += " " + period;
+            // Output the time:
+            MAIN.createLogEntry(timeStr, "The current time"); // `"time" command`
+        }
+    },
+
+    date: {
+        desc: "Get the current local date.",
         action() {
-            MAIN.createLogEntry(
-                "The current date and time is: " + MAIN.timestampToStr(Date.now()),
-                `"time" command`
-            );
+            // Create new Date object from a time stamp of the current time:
+            const time = new Date(Date.now());
+            // Create the date string:
+            const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            let weekday = weekdays[time.getDay() - 1];
+            // if (weekday === "Wednesday") {
+            //     weekday = "It is Wednesday my dudes";
+            // }
+            const year = time.getFullYear();
+            const month = months[time.getMonth()];
+            const day = time.getDate();
+            const dateStr =  `${weekday}, ${year} ${month} ${day}`;
+            // Output the date:
+            MAIN.createLogEntry(dateStr, "The current date");
         }
     },
     

@@ -233,12 +233,14 @@ class CommandManager {
         }
 
         // Determine if there are extra positional arguments which should be combined and used as an argument value:
-        const lastPargParamVal = comParams[lastPargIdx][1]  // get the specified value for the command parameter at the same index as the last used positional argument
-        if (pargs.length > lastPargIdx + 1) {               // if the last positional argument used was NOT the last element in the array of positional arguments,
-            if (lastPargParamVal === "ARY") {               // and if the corresponding parameter specifies an array ("ARY"),
-                args[lastPargIdx] = pargs.slice(lastPargIdx);           // then combine all the remaining positional arguments into a single array and set that as the argument value.
-            } else if (lastPargParamVal === "STR") {        // but if the corresponding parameter specifies a string ("STR"),
-                args[lastPargIdx] = pargs.slice(lastPargIdx).join(' '); // then combine all the remaining positional arguments into a single string and set that as the argument value.
+        if (pargs && pargs.length > 0) {                    // firstly, only do this block if there's actually positional arguments
+            const lastPargParamVal = comParams[lastPargIdx][1]  // get the specified value for the command parameter at the same index as the last used positional argument
+            if (pargs.length > lastPargIdx + 1) {           // if the last positional argument used was NOT the last element in the array of positional arguments,
+                if (lastPargParamVal === "ARY") {           // and if the corresponding parameter specifies an array ("ARY"),
+                    args[lastPargIdx] = pargs.slice(lastPargIdx);           // then combine all the remaining positional arguments into a single array and set that as the argument value.
+                } else if (lastPargParamVal === "STR") {    // but if the corresponding parameter specifies a string ("STR"),
+                    args[lastPargIdx] = pargs.slice(lastPargIdx).join(' '); // then combine all the remaining positional arguments into a single string and set that as the argument value.
+                }
             }
         }
 
