@@ -91,7 +91,7 @@ async function serverRequest(endPoint, data={}) {
  * @param {Error} e - The Error object to display from.
  */
 function displayError(e) {
-    createLogEntry(e.message, e.name, "error")
+    createLogEntry(e.message, e.name, undefined, "error");
     console.error(e);
 }
 
@@ -100,34 +100,16 @@ function displayError(e) {
 
 ///////// Internal Actions /////////
 
-/**
- * Create a new log event entry. Will store the entry in the backend and render it in the log view.
- * 
- * @param {string} content - a message to explain the entry event.
- * @param {number} time - (optional) an epoch/unix timestamp of when the event occurred. Defaults to the current time when called. 
- * @param {string} command - (optional) the name of the command (or thing) which produced the entry event. Defaults to an empty string.
- * @param {string} type - (optional) the type of log entry. Can only be one of these values: "message", "input", "error". Defaults to "message"
- */
-function createLogEntry(content, title="", type="message", time=Date.now()) {
-    // 1) Make sure the arg values are valid:
-    const typeVals = ["message", "input", "error"];         // the possible values for the 'type' property
-    if (!typeVals.includes(type)) {                         // ensure that 'type' value is valid
-        throw new Error(
-            `"${type}" is an invalid value for a log entry 'type' property. ` +  
-            `Must be one of the following: ${typeVals.join(' ')}`
-        );
-    }
-    // 2) Send server request to create and store a new log entry:
-    const data = {                                          // create a new object containing each of the properties of a log event entry
-        'type': type,
-        'title': title,
-        'time': time,
-        'content': content,
-    }
-    // await serverRequest("/lib/new", data);                  // send request to server to create and store a new entry with the entry properties
-                                                            // -> this must be complete and without errors before continuing
-    // 3) Render the new entry in the log view:
-    logView.addEntry(type, title, timestampToStr(time), content)  // render new entry in log-view
+function newLogNote() {
+
+}
+
+function newLogMessage() {
+
+}
+
+function newLogError() {
+
 }
 
 /** Get `n` most recent entries from the server and render them */

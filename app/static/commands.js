@@ -2,29 +2,7 @@ import * as MAIN from "./script.js";
 
 /////////////////////////////////////////////////////////////////////////////////
 
-const commandsOLD = {
-
-    /** Create, store, and render a new entry */
-    async createEntry(content) {
-        let now_time = Date.now();
-        let time_str = timestampToStr(now_time)
-        let data = {                                        // create the object with data of the new log entry's properties, and the library it belongs to
-            title: `Log ${time_str}`,
-            entry_data: {
-                time: now_time,
-                type: "log",
-                // supers: "",
-                content: content
-            }
-        };
-        serverRequest("/lib/new", data);                    // send the entry to server for storage
-        logView.addEntry(data.title, time_str, "", data.entry_data.content);    // render new entry in log-view
-    }
-}
-
-///////////////////////////
-
-const INCOMPLETEdefaultCommands = {
+const INCOMPLETECommands = {
 
     timer: {
         desc: `Set a timer.

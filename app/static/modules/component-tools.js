@@ -73,10 +73,10 @@ class CustomElementBase extends HTMLElement {
  * @param {Function} elementClass - a custom element class to add the CSS code to.
  * @param {string} css - the CSS code to apply to the class.
  */
-function addCSSToCustomElement(elementClass, css) {
+function addCSSToCustomElementClass(elementClass, css) {
     elementClass.allStyleSheets.push(CSSToStyleSheet(css)) // convert the provided CSS code to a style sheet, and append that to the class' `allStyleSheets` array
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 
-export {CSSToStyleSheet, CustomElementBase, addCSSToCustomElement}
+export {CSSToStyleSheet, CustomElementBase, addCSSToCustomElementClass}

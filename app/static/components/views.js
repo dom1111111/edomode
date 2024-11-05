@@ -1,4 +1,6 @@
-import {CustomElementBase} from "../modules/component-tools.js";
+import {CustomElementBase, CSSToStyleSheet} from "../modules/component-tools.js";
+
+const sepr = ",|,"
 
 /////////////////////////////////////////////////////////////////////////////////
 // Log-View
@@ -18,6 +20,21 @@ customElements.define("log-view", class LogView extends CustomElementBase {
         }
     `;
 
+    ///
+
+    static styleTypeCSS = {                                 // the extra styles to apply to certain entry child elements
+        message: `
+            :host {
+                align-self: flex-end;
+                background-color: ;
+        `,
+        error: `
+            :host {
+                align-self: flex-end;
+                background-color: ;
+        `,
+    }
+
     /// Setup/Lifecycle Methods ///
 
     constructor() {
@@ -27,21 +44,36 @@ customElements.define("log-view", class LogView extends CustomElementBase {
     /// Action Methods ///
 
     /**
-     * Create a new entry and append it to this view.
+     * Create a new entry and append it to this log view.
      * 
-     * @param {string} type - the type of event the log entry represents (should only be one of several set values (defined elsewhere)).
-     * @param {string} title - (optional) an overall title for the event.
-     * @param {string} time - a readable string of the time the event occurred.
-     * @param {string} content - a message explaining the event.
-     */ 
-    addEntry(type, title="", time, content) {
-        const entry = document.createElement("log-event-entry");                // create a new log-event-entry element
-        this.shadowRoot.appendChild(entry);                                     // add the element to this
-        entry.setAttribute("type", type);                                       // set the properties of the entry (this should be done AFTER entry is added!)
-        entry.setAttribute("title", title);              
-        entry.setAttribute("time", time);
-        entry.setAttribute("content", content);
-        this.scrollTo({left: 0, top: this.scrollHeight, behavior: "smooth"});   // scroll to bottom after new entry is added   
+     * @param {Object} properties - an object containing a key/value for all properties that the entry should remember and display.
+     * @param {string} styleType - the type of styling that should be used for this entry.
+     */
+    addEntry(properties, styleType="note") {
+        // 1) Ensure that `properties` has all needed properties for entry display:
+        const baseProps = ["time", "content"];  // "title",
+        for (const prop of baseProps) { 
+            if (!properties.hasOwnProperty(prop)) {
+                throw new Error(`The 'properties' argument object for the log entry is missing the "${prop}" property`)
+            }
+        }
+        // 2) Create the new log entry element and add it within this one (log-view):
+        const entry = document.createElement("log-entry");
+        this.shadowRoot.appendChild(entry);
+        // 3) Set the properties of the entry: (this should be done AFTER entry is added!)
+        for (let [name, val] of properties.entries()) {
+            if (Array.isArray(val)) {
+                val = val.join(sepr);                       // if the value is an array, then join it into a string using a global separator 
+            }
+            entry.setAttribute(name, val);
+        }
+        // 4) Adjust the style of the entry element based on the the `styleType`:
+        if (styleTypeCSS.hasOwnProperty(styleType)) {                       // only some styleTypes need to be adjusted
+            const styleSheet = CSSToStyleSheet(styleTypeCSS[styleType]);    // create a new stylesheet from the matching CSS code
+            entry.shadowRoot.adoptedStyleSheets.push(styleSheet);           // add the new stylesheet to the element, so that the new styles take effect
+        }
+        // 5) Finally, scroll to bottom of this view so that the entry element is visible:
+        this.scroll({left: 0, top: this.scrollHeight, behavior: "smooth"});
     }
 
     /** Remove all entries (reset). */
@@ -67,108 +99,9 @@ customElements.define("log-view", class LogView extends CustomElementBase {
 /////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////
-// Log View Event Entry
+// Log View Entry
 
-customElements.define("log-event-entry", class LogEventEntry extends CustomElementBase {
-
-    /// HTML and CSS Code for this Element ///
-
-    static elementHTML = `
-        <div class="header">
-            <span class="title"></span>    
-            <span class="time"></span>
-        </div>
-        <p class="content"></p>
-    `;
-    static elementCSS = `
-        :host {
-            border-radius: 3px;         /* gives the border rounded corners */
-            padding: 2px;
-            background-color: rgba(255, 255, 255, 0.35);
-
-            animation-name: slidegrow;  /* spawn animation: */
-            animation-duration: 0.2s;
-        }
-        
-        @keyframes slidegrow {          /* spawn animation code */
-            0% {
-                translate: -100vw 0;    /* start completely off screen from the left */
-                scale: 0%;
-            }
-            100% {
-                translate: 0 0;
-                scale: 100%;
-            }
-        }
-
-        .header {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            padding: 5px 5px 0;
-        }
-        
-        .header > * {
-            font-size: 0.75em;
-            color: #314551;
-        }
-        
-        .header > .title {
-            font-weight: bold;
-        }
-
-        .content {
-            margin: 1rem;
-        }
-    `;
-
-    /// Setup/Lifecycle Methods ///
-     
-    static observedAttributes = ["type", "title", "time", "content"]; // the attributes which correspond to log entry property names 
-
-    constructor() {
-        super();
-    }
-
-    connectedCallback() {
-        super.connectedCallback();                          // set up the shadow DOM, HTML, and CSS for this element 
-    
-        this._propElements = {                              // an object to hold each element which displays the entry properties and values
-            title: this.shadowRoot.querySelector(".title"),
-            time: this.shadowRoot.querySelector(".time"),
-            content: this.shadowRoot.querySelector(".content"),
-        }
-    }
-
-    /** 
-     * The standard custom element lifecycle callback for setting the value of 
-     * *observed* attributes. The value set will become the `innerText` of the 
-     * child-element representing the property corresponding to the attribute name. 
-    */
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (newValue !== oldValue) {                        // only proceed if the new value is actually different from the old value 
-            if (name === "type") {
-                // ... adjust style based on type
-            } else {
-                this._propElements[name].innerText = newValue;  // set the inner text of the child-element with the matching class name 
-            }
-        }
-    }
-
-    /// Action Methods ///
-
-    /** Completely delete this element. Will be removed from it's parent node.  */
-    delete() {
-        this.remove();
-    }
-
-});
-
-
-///////////////////////////
-// General View Entry
-
-customElements.define("view-entry", class ViewEntry extends CustomElementBase {
+customElements.define("log-entry", class LogEntry extends CustomElementBase {
 
     /// HTML and CSS Code for this Element ///
 
@@ -181,18 +114,19 @@ customElements.define("view-entry", class ViewEntry extends CustomElementBase {
         <div class="properties">
             <!-- (FOR REFERENCE:)
             <span class="prop">
-                <span class="name"></span>
-                <span class="value"></span>
+                <span class="prop-name"></span>
+                <a class="prop-val"></a>
             </span>
             -->
         </div>
         <p class="content"></p>
     `;
+
     static elementCSS = `
         :host {
             border-radius: 3px;         /* gives the border rounded corners */
             padding: 2px;
-            background-color: rgba(255, 255, 255, 0.35);
+            background-color: rgb(142, 142, 142);
 
             animation-name: slidegrow;  /* spawn animation: */
             animation-duration: 0.2s;
@@ -213,17 +147,20 @@ customElements.define("view-entry", class ViewEntry extends CustomElementBase {
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            padding: 5px 5px 0;
-        }
-        
-        .header .title {
-            font-weight: bold;
-            font-size: 1.5em;
-            align-self: center;
+            padding: 5px;
         }
 
-        .header .time {
-            font-size: 0.9em;
+        .header > * {
+            font-size: 0.75em;
+            color: #314551;
+        }
+        
+        .header > .title {
+            font-weight: bold;
+        }
+
+        hr {
+            margin: 0;                  /* this is needed as it has a margin by default */
         }
 
         .properties {
@@ -235,16 +172,22 @@ customElements.define("view-entry", class ViewEntry extends CustomElementBase {
             font-size: 0.8em;
         }
 
-        .properties .prop {
+        .properties > .prop {
             border: 1px solid black;
+
         }
 
-        .properties .prop > * {
+        .properties > .prop > * {
+            display: inline-block;
             margin: 2px;
         }
 
-        .properties .prop .name {
-            font-weight: bold
+        .properties > .prop > .prop-name {
+            font-weight: bold;
+        }
+
+        .properties > .prop > .prop-val {
+            background-color: rgb(106, 138, 142);
         }
 
         .content {
@@ -254,6 +197,7 @@ customElements.define("view-entry", class ViewEntry extends CustomElementBase {
 
     /// Setup/Lifecycle Methods ///
 
+    static observedAttributes = ["title", "time", "content", "tags", "price"];   // the attributes which correspond to all possible log entry property names 
     static defaultProps = ["title", "time", "content"];     // the default property names, which have their own specific position and styling outside of the 'properties' element
     
     constructor() {
@@ -262,75 +206,43 @@ customElements.define("view-entry", class ViewEntry extends CustomElementBase {
 
     connectedCallback() {
         super.connectedCallback();                          // set up the shadow DOM, HTML, and CSS for this element 
-
-        this._propElements = {                              // an object to hold each element which displays the entry properties and values
-            title: this.shadowRoot.querySelector(".title"),
-            time: this.shadowRoot.querySelector(".time"),
-            properties: this.shadowRoot.querySelector(".properties"),
-            content: this.shadowRoot.querySelector(".content"),
-        }
-
-        this._renderProperties()                            // initially render any content related to properties (which come from this class' attributes, if any at this point)
-
-        // Create a mutation observer and callback to run every time an attribute is changed 
-        // (this was used instead of custom element `observedAttributes` mechanic, because this 
-        // needs to observe ALL attribute changes, not just a select few which are already known).
-        new MutationObserver((mutationRecords) => {
-            for (const mutation of mutationRecords) {       // iterate through each mutation (attribute change)
-                const oldVal = mutation.oldValue;           // attribute's old value
-                const newVal = this.getAttribute(mutation.attributeName);   // attribute's new value
-                if (newVal !== oldVal) {                    // If at least one of the new values is different from its old value,
-                    this._renderProperties()                // then render all of the properties in the "properties" element,
-                    break                                   // and then break the loop.
-                }
-            }
-        }).observe(this, { attributes: true });
     }
 
-    /** 
-     * Render all attributes into element content. 
-     * 
-     * Every attribute is used to store the properties of the entry this is displaying, 
-     * and used to define the content of sub-elements which are there to display various 
-     * entry properties.
-    */
-    _renderProperties() {
-        for (const attr of this.attributes) {   // iterate through all attributes (which represent entry properties), and create elements to represent them.
-            if (this.constructor.defaultProps.includes(attr.name)) {    // if the attribute name is one of the class' default properties,
-                this._propElements[attr.name].innerText = attr.value;   // then change the innerText of the element with the matching name, to be the new value  
-            } else {                                                    // otherwise, if its not a default property, render it in the "properties" element
-                // Create element for property name:
-                const propName = document.createElement("span");
-                propName.classList.add('name');
-                propName.innerText = attr.name;
-                // Create element for property value:
-                const propVal = document.createElement("span");
-                propVal.classList.add('value');
-                propVal.innerText = attr.value;
-                // Create element for property, and add name and value elements to it:
-                const prop = document.createElement("span");
-                prop.classList.add('prop');
-                prop.appendChild(propName);
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (newValue === oldValue) {return}                 // only proceed if the new value is actually different from the old value 
+        if (this.constructor.defaultProps.includes(name)) { // if the attribute name is one of the class' default properties,
+            const childElement = this.shadowRoot.querySelector("." + name); // then get the child element with the same class name as the attribute name
+            childElement.innerText = newValue;              // and set the inner text of the child-element to be the new value
+        } else {                                            // otherwise, if its not a default property, render it in the "properties" element
+            // Create span element for the overall property container:
+            const prop = document.createElement("span");
+            prop.classList.add('prop');
+            // Create span element for property name and add it to the property element:
+            const propName = document.createElement("span");
+            propName.classList.add('prop-name');
+            propName.innerText = name + ':';
+            prop.appendChild(propName);
+            // Create span element(s) for property value(s) and add to the property element:
+            newValue = JSON.parse(newValue);
+            console.log(name, '-->', newValue);
+            if (!Array.isArray(newValue)) {
+                newValue = [newValue];                      // if the value is not an array, turn it into one
+                console.log('OY')
+            }
+            for (const val of newValue) {                   // iterate through the array of values, creating an element for each
+                const propVal = document.createElement("a");
+                propVal.classList.add('prop-val');
+                propVal.innerText = val;
                 prop.appendChild(propVal);
-                // Finally, add the complete property element to the main "OtherProps" element:
-                this._propElements["properties"].appendChild(prop);
             }
+            // Finally, add the new complete property element to the main "properties" element:
+            const propsElement = this.shadowRoot.querySelector(".properties");
+            propsElement.appendChild(prop);
         }
     }
+
 
     /// Action Methods ///
-
-    /**
-     * Update any of the entry properties. Properties are managed through this element's 
-     * attributes, so this function will set an attribute for each property's name and value.  
-     * 
-     * @param {Object} props - an object with key value pairs for each property name and value.
-     */
-    setProperties(props={}) {
-        for (const [name, value] of Object.entries(props)) {
-            this.setAttribute(name, value);
-        }
-    }
 
     /** Completely delete this element. Will be removed from it's parent node.  */
     delete() {
