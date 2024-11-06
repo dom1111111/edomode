@@ -207,44 +207,103 @@ def _convert_entries_to_list(entries:dict) -> list[dict]:
         # the list which contains the existing value dict but also add a "title" 
         # property to the new dict, which comes from the key.
 
+### Support For Library User File Operations ###
+
+def _get_valid_absolute_lib_path(lib_dir:str, path:str) -> Path:
+    """Get a full absolute file path in the library directory (`lib_dir`)
+    - `path` is the *relative* path where the file should exist in the library,
+    including the file name, extension, and any container directories.
+        - Will raise error if it leads to the protected library data dirs.
+    """
+    lib_dir_obj = Path(lib_dir)                             # first convert both path strings to Path objects
+    path_obj = Path(path)
+    if path_obj.is_absolute():
+        path_obj = Path(*path_obj.parts[1:])                # if `path` is absolute, make it relative (remove the root)
+    if path_obj.parts[0] == _DATA_DIR:
+        raise Exception("You cannot read/write a file in the library's reserved data directory.")
+    return lib_dir_obj / path_obj                           # create a full absolute path by combining the library directory with the relative path for the file
+    
 #########################################################
 ######### Main Functions for Library User Files #########
 #########################################################
 
-def list_user_filenames(lib_dir:str) -> list:
-    """Will return a list of file names (including extensions) for all user 
-    files in the library `lib_dir`(i.e. not library data files). This will 
-    only return names, not paths."""
-    pass
-
-def create_file(lib_dir:str, path:str, data:str|bytes=None):
+def create_file(lib_dir:str, path:str, data:str|bytes=""):
     """Create a new file in a library folder.
     - `path` is the *relative* path that the file should exist in the library,
     including the file name, extension, and any container directories. If the 
     directories in this path do not exist, then they will created.
-    - `data` is the file data will be written to the file."""
- 
-def read_file(lib_dir:str, path:str) -> str|bytes:
+        - Will raise error if it already exists as a file, or if it leads to any 
+        protected library data files/dirs.
+    - `data` is the file data that will be written to the file. (defaults to empty string)
+    """
+    # 1) Prepare and validate path:
+    full_path = _get_valid_absolute_lib_path(lib_dir, path) # get a valid full absolute library path
+    if full_path.is_file():
+        raise FileExistsError(f"""The "{path}" file cannot be created, as it already exists in this library.""")
+    full_path.parent.mkdir(parents=True, exist_ok=True)     # if path had any directories between the file and the library directory, then this will create any which don't exist, and leave alone any which do
+    # 2) Create the file:
+    if isinstance(data, str):
+        full_path.write_text(data)                          # if the data is a string, then create file and write data as text
+    elif isinstance(data, bytes):
+        full_path.write_bytes(data)                         # or if the data is bytes, then create file and write data as bytes
+
+def read_file(lib_dir:str, path:str, text:bool=True) -> str|bytes:
     """Get the contents of an existing file in the library.
     - `path` is the *relative* path where the file exists in the library.
-        - Will raise error if the file `path` doesn't exist, if it leads to 
-        a directory, or leads to any protected library data files/dirs."""
+        - Will raise error if it doesn't exist as a file, or if it leads to any 
+        protected library data files/dirs.
+    - `text` is a boolean that if True, will read the file as text, or if False,
+    will read the file as bytes.
+    """
+    full_path = _get_valid_absolute_lib_path(lib_dir, path) # get a valid full absolute library path
+    if text:
+        return full_path.read_text()                        # read and return the file content as either text or bytes depending on `text` arg bool value
+    return full_path.read_bytes()                           # -> either will raise error if it doesn't exist
 
 def edit_file(lib_dir:str, path:str, new_path:str=None, data:str|bytes=None):
     """Edit an existing file in a library folder. 
     - `path` is the *relative* path where the file exists in the library.
-        - Will raise error if the file `path` doesn't exist, if it leads to 
-        a directory, or leads to any protected library data files/dirs.
+        - Will raise error if it doesn't exist as a file, or if it leads to any 
+        protected library data files/dirs.
     - `new_path` (if provided) will be the path that the file will be renamed to.
-    - `data` (if provided) will be the new contents for the file, rewriting the 
-    old contents."""
+        - Will raise error if it already exists as a file, or if it leads to any 
+        protected library data files/dirs.
+    - `data` (if provided) will be the new contents for the file, rewriting the old contents.
+    """
+    # 1) Prepare and validate path:
+    full_path = _get_valid_absolute_lib_path(lib_dir, path) # get a valid full absolute library path
+    if not full_path.is_file():
+        raise FileNotFoundError(f"""The path "{path}" does not exist or is not a file in this library.""")
+    # 2) Rename the file if a new path was provided:
+    if new_path:
+        new_full_path = _get_valid_absolute_lib_path(lib_dir, new_path) # get a valid full absolute library path
+        if new_full_path.is_file():
+            raise FileExistsError(f"""The file cannot be renamed to "{new_path}", as it already exists in this library.""")
+        new_full_path.parent.mkdir(parents=True, exist_ok=True) # if path had any directories between the file and the library directory, then this will create any which don't exist, and leave alone any which do
+        full_path.rename(new_full_path)                     # rename the path to be the new path
+    # 3) Rewrite the file if data was provided
+    if data:
+        if isinstance(data, str):
+            full_path.write_text(data)                      # if the data is a string, then create file and write data as text
+        elif isinstance(data, bytes):
+            full_path.write_bytes(data)                     # or if the data is bytes, then create file and write data as bytes
 
-def delete_file(lib_dir:str, path:str, new_path:str=None, data:str|bytes=None):
+
+    full_path.parent.mkdir(parents=True, exist_ok=True)     # if path had any directories between the file and the library directory, then this will create any which don't exist, and leave alone any which do
+    # 2) Create the file:
+    if isinstance(data, str):
+        full_path.write_text(data)                          # if the data is a string, then write data as text
+    elif isinstance(data, bytes):
+        full_path.write_bytes(data)                         # or if the data is bytes, then write data as bytes
+
+def delete_file(lib_dir:str, path:str):
     """Delete an existing file in the library.
     - `path` is the *relative* path where the file exists in the library.
-        - Will raise error if the file `path` doesn't exist, if it leads to 
-        a directory, or leads to any protected library data files/dirs."""
-
+        - Will raise error if it doesn't exist as a file, or if it leads to any 
+        protected library data files/dirs.
+    """
+    full_path = _get_valid_absolute_lib_path(lib_dir, path)
+    full_path.unlink()                                      # delete the file (will raise error if it doesn't exist)
 
 ######################################################
 ######### Main Functions for Library Entries #########
