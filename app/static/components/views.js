@@ -15,9 +15,16 @@ customElements.define("log-view", class LogView extends CustomElementBase {
             padding: 2px;
             display: flex;
             flex-direction: column;
+            /* align-items: flex-start; */
             overflow-y: auto;           /* makes it so that if this grows past its parent height, it will scroll vertically */
             gap: 4px;
         }
+
+        /*
+        * {
+            width: 75%;
+        }
+        */
     `;
 
     ///
@@ -25,13 +32,18 @@ customElements.define("log-view", class LogView extends CustomElementBase {
     static styleTypeCSS = {                                 // the extra styles to apply to certain entry child elements
         message: `
             :host {
-                align-self: flex-end;
-                background-color: ;
+                /* align-self: flex-end; */
+                background-color: blue;
+            }
         `,
         error: `
             :host {
-                align-self: flex-end;
-                background-color: ;
+                /* align-self: flex-end; */
+                background-color: red;
+            }
+            .content {
+                text-align: end;
+            }
         `,
     }
 
@@ -61,15 +73,15 @@ customElements.define("log-view", class LogView extends CustomElementBase {
         const entry = document.createElement("log-entry");
         this.shadowRoot.appendChild(entry);
         // 3) Set the properties of the entry: (this should be done AFTER entry is added!)
-        for (let [name, val] of properties.entries()) {
+        for (let [name, val] of Object.entries(properties)) {
             if (Array.isArray(val)) {
                 val = val.join(sepr);                       // if the value is an array, then join it into a string using a global separator 
             }
             entry.setAttribute(name, val);
         }
         // 4) Adjust the style of the entry element based on the the `styleType`:
-        if (styleTypeCSS.hasOwnProperty(styleType)) {                       // only some styleTypes need to be adjusted
-            const styleSheet = CSSToStyleSheet(styleTypeCSS[styleType]);    // create a new stylesheet from the matching CSS code
+        if (this.constructor.styleTypeCSS.hasOwnProperty(styleType)) {      // only some styleTypes need to be adjusted
+            const styleSheet = CSSToStyleSheet(this.constructor.styleTypeCSS[styleType]);   // create a new stylesheet from the matching CSS code
             entry.shadowRoot.adoptedStyleSheets.push(styleSheet);           // add the new stylesheet to the element, so that the new styles take effect
         }
         // 5) Finally, scroll to bottom of this view so that the entry element is visible:
@@ -197,7 +209,7 @@ customElements.define("log-entry", class LogEntry extends CustomElementBase {
 
     /// Setup/Lifecycle Methods ///
 
-    static observedAttributes = ["title", "time", "content", "tags", "price"];   // the attributes which correspond to all possible log entry property names 
+    static observedAttributes = ["title", "time", "content", "tags"];   // the attributes which correspond to all possible log entry property names 
     static defaultProps = ["title", "time", "content"];     // the default property names, which have their own specific position and styling outside of the 'properties' element
     
     constructor() {
@@ -223,12 +235,7 @@ customElements.define("log-entry", class LogEntry extends CustomElementBase {
             propName.innerText = name + ':';
             prop.appendChild(propName);
             // Create span element(s) for property value(s) and add to the property element:
-            newValue = JSON.parse(newValue);
-            console.log(name, '-->', newValue);
-            if (!Array.isArray(newValue)) {
-                newValue = [newValue];                      // if the value is not an array, turn it into one
-                console.log('OY')
-            }
+            newValue = newValue.split(sepr);                // turn value into array by splitting it with the global separator (this handles both values which were originally arrays or non arrays)
             for (const val of newValue) {                   // iterate through the array of values, creating an element for each
                 const propVal = document.createElement("a");
                 propVal.classList.add('prop-val');

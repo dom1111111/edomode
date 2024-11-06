@@ -102,7 +102,7 @@ const defaultCommands = {
             if (flag) {
                 msg += "\n- and the flag is present";
             }
-            MAIN.createLogEntry(msg, `"example" command`);
+            MAIN.displayLogMessage(msg, `"example" command`);
         }
         // Notes:
         //  - if a command definition object doesn't need a property, then it should be excluded rather than left blank.
@@ -112,14 +112,14 @@ const defaultCommands = {
     "test-command-error": {
         action() {
             let x = oof;
-            MAIN.createLogEntry(x);
+            MAIN.displayLogMessage(x);
         }
     },
 
     "test-server-error": {
         async action() {
             response = await MAIN.serverRequest("/error-test", {});
-            MAIN.createLogEntry(response);
+            MAIN.displayLogMessage(response);
         }
     },
 
@@ -147,7 +147,7 @@ const defaultCommands = {
             }
             timeStr += " " + period;
             // Output the time:
-            MAIN.createLogEntry(timeStr, "The current time"); // `"time" command`
+            MAIN.displayLogMessage(timeStr, "The current time"); // `"time" command`
         }
     },
 
@@ -168,7 +168,49 @@ const defaultCommands = {
             const day = time.getDate();
             const dateStr =  `${weekday}, ${year} ${month} ${day}`;
             // Output the date:
-            MAIN.createLogEntry(dateStr, "The current date");
+            MAIN.displayLogMessage(dateStr, "The current date")
+        }
+    },
+
+    /** Create, store, and render a new entry */
+    async createEntry(content) {
+        let now_time = Date.now();
+        let time_str = timestampToStr(now_time)
+        let data = {                                        // create the object with data of the new log entry's properties, and the library it belongs to
+            title: `Log ${time_str}`,
+            entry_data: {
+                time: now_time,
+                type: "log",
+                // supers: "",
+                content: content
+            }
+        };
+        serverRequest("/lib/new", data);                    // send the entry to server for storage
+        logView.addEntry(data.title, time_str, "", data.entry_data.content);    // render new entry in log-view
+    },
+
+    note: {
+        desc: "Create a new note entry.",
+        inputParams: [
+            ['content', "STR"],                             // the main content (this is always required)
+            ['title', "STR", ""],                           // (optional) title
+            ['supers', "ARY", []]                           // (optional) super links (tags)
+            // time
+            // type
+        ],
+        action(content, title="", supers=[]) {
+            
+            MAIN.createLogEntry(content, title, "")
+            
+            let msg = "Example Command Output\n\n" +
+            "This is an example command action.\n" + 
+            "- this is your first string: " + str1 + '\n' +
+            "- this is your second string: " + str2 + '\n' +
+            "- this is your number: " + num;
+            if (flag) {
+                msg += "\n- and the flag is present";
+            }
+            MAIN.createLogEntry(msg, `"example" command`);
         }
     },
     

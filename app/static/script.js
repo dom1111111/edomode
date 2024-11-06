@@ -91,7 +91,7 @@ async function serverRequest(endPoint, data={}) {
  * @param {Error} e - The Error object to display from.
  */
 function displayError(e) {
-    createLogEntry(e.message, e.name, undefined, "error");
+    displayLogMessage(e.message, e.name, "error");
     console.error(e);
 }
 
@@ -100,24 +100,46 @@ function displayError(e) {
 
 ///////// Internal Actions /////////
 
-function newLogNote() {
-
+/**
+ * Create a new note entry, store it in the backend, and display it in the log view.
+ * 
+ * @param {string} title - (optional) a general title of the note.
+ * @param {number} time - (optional) an epoch/unix timestamp of when the note was created occurred. Defaults to the current time when called. 
+ * @param {string} content - the main note content.
+ */
+function createNoteEntry(title, time=Date.now(), content, tags) {
+    const props = {                                         // create a new object with note entry properties
+        'title': title,
+        'time': time,
+        'type': "note",                                     // make sure to add the 'type' property with "note" value (this is needed for entry storage)
+        'content': content
+    }
+    if (tags) {
+        props['tags'] = tags;                               // adds 'tags' property only if it was included in args
+    }
+    // await serverRequest("/lib/new", props);                 // send request to server to create and store a new note entry with the entry properties
+        // -> this must be complete and without errors before continuing
+    props['time'] = timestampToStr(time);                   // convert time property to string representation before displaying
+    logView.addEntry(props, "note");                        // display the new entry in log-view
 }
 
-function newLogMessage() {
-
-}
-
-function newLogError() {
-
+function displayLogMessage(content, title="", styleType="message") {
+    const props = {                                         // create a new object with log message properties
+        'title': title,
+        'time': timestampToStr(Date.now()),                 // add in time string
+        'content': content
+    }
+    logView.addEntry(props, styleType);                     // display the message entry in log-view
 }
 
 /** Get `n` most recent entries from the server and render them */
 async function displayRecentEntries() {
     const data = {'n': 50}                                      // setting 50 as default number of entries to get   
     const response = await serverRequest("/lib/recent", data);  // make request to server, sending the data
+    // the returned response should be an object with each of the entries
     for (const entry of response) {                             // iterate through response, getting each entry
-        createLogEntry(entry['content'], entry['title'], entry['type'], entry['time']); // render the entry in the log-view
+        entry.time = timestampToStr(entry.time)                 // adjust the entry object's 'time' property to be a readable string before displaying
+        logView.addEntry(entry, "note");                        // render the entry in the log-view
     }
 }
 
@@ -142,7 +164,6 @@ async function executeCommandFromInput(inputStr) {
     // 1) Extract the command name and arguments from the input string:
     try {
         [name, args] = com.getCommandParamsFromInput(inputStr);     // extract the command name and arguments from the input string
-        createLogEntry(inputStr, `Input matched to "${name}" command`, "input");    // display the input event
         await com.executeCommand(name, args);                       // execute the command. -> must use `await` in order to catch errors from any async command functions
     } catch (error) {
         if (name) {                                                 // if error and `name` is defined, modify error to include command name
@@ -169,4 +190,4 @@ window.onload = () => {
 
 ///////// Exports (used by `commands` module) /////////
 
-export {logView, timestampToStr, serverRequest, createLogEntry}
+export {logView, timestampToStr, serverRequest, createNoteEntry, displayLogMessage}
