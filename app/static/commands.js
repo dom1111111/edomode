@@ -82,14 +82,14 @@ const INCOMPLETECommands = {
 const defaultCommands = {
 
     example: {
-        desc: "This is an example command. It accepts 2 arguments: a single string, and one of three numbers: 1, 2, or 3.", // the description of the command
+        desc: "This is an example command.",                // the description of the command
         aliases: ["do_example", "example_go"],              // alternative names that the command can be identified by (should always be in snake case (spaces represented by underscores `_`))
         preCheck() {                                        // an example of a pre-check - a function that (if provided) will be called before the input parameters are checked
             return true                                     // function will always be tested for truthiness. If the return value of the pre-check is truthy, then the command will be considered "available" for execution
         },
         inputParams: [                                      // an array of the input parameters that the command accepts (must match the order of action function's parameters)
-            ['string_1', "STR"],                            // each element must be an array, whose first value is the parameter name, the second denotes the acceptable value for its argument, and (optional) the third may be its default value, denoting if the parameter is optional or not
-            ['string_2', ["a", "b", "c"]],                  // the acceptable values can either be a string denoting type ("STR" for string, "NUM" for numbers, "BOO" for boolean, "ARY" for array), or an array of possible values that the argument could be
+            ['string_1', ["a", "b", "c"]],                  // each element must be an array, whose first value is the parameter name, the second denotes the acceptable value for its argument, and (optional) the third may be its default value, denoting if the parameter is optional or not
+            ['string_2', "STR"],                            // the acceptable values can either be a string denoting type ("STR" for string, "NUM" for numbers, "BOO" for boolean, "ARY" for array), or an array of possible values that the argument could be
             ['number', [1, 2, 3], 2],                       // if a command parameter has a default value, it will mean the argument for it is optional
             ['flag', "BOO", false]                          // also, if the acceptable value (2nd element) is "BOO" and default value (3rd element) is `false`, then a matching named argument will behave like a flag, and just has to be present in the input without any other following values (will be given `true` value if present)
         ],
@@ -172,45 +172,23 @@ const defaultCommands = {
         }
     },
 
-    /** Create, store, and render a new entry */
-    async createEntry(content) {
-        let now_time = Date.now();
-        let time_str = timestampToStr(now_time)
-        let data = {                                        // create the object with data of the new log entry's properties, and the library it belongs to
-            title: `Log ${time_str}`,
-            entry_data: {
-                time: now_time,
-                type: "log",
-                // supers: "",
-                content: content
-            }
-        };
-        serverRequest("/lib/new", data);                    // send the entry to server for storage
-        logView.addEntry(data.title, time_str, "", data.entry_data.content);    // render new entry in log-view
-    },
-
     note: {
         desc: "Create a new note entry.",
         inputParams: [
             ['content', "STR"],                             // the main content (this is always required)
-            ['title', "STR", ""],                           // (optional) title
-            ['supers', "ARY", []]                           // (optional) super links (tags)
-            // time
-            // type
+            ['title', "STR", ""],                           // (optional) note title
+            ['tags', "ARY", []]                             // (optional) note tags
         ],
-        action(content, title="", supers=[]) {
-            
-            MAIN.createLogEntry(content, title, "")
-            
-            let msg = "Example Command Output\n\n" +
-            "This is an example command action.\n" + 
-            "- this is your first string: " + str1 + '\n' +
-            "- this is your second string: " + str2 + '\n' +
-            "- this is your number: " + num;
-            if (flag) {
-                msg += "\n- and the flag is present";
+        async action(content, title="", tags=[]) {
+            let time;
+            if (title.length < 1) {
+                time = Date.now();
+                title = `Note ${time}`                      // if title not provided, then set title to be "Note" + the current time stamp
             }
-            MAIN.createLogEntry(msg, `"example" command`);
+            if (tags.length < 1) {
+                tags = undefined;                           // if tags are not provided, make sure they are entirely not included (undefined)
+            }
+            await MAIN.createNoteEntry(title, content, time, tags);
         }
     },
     

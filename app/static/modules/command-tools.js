@@ -183,13 +183,16 @@ class CommandManager {
      * positional arguments).
      * 
      * The parsing will follow these rules:
-     * - If the parameter corresponding to the last positional argument specifies an array 
-     * or string value, then this last argument and any excess positional arguments will be joined 
-     * into a single array or string value, respectively. Otherwise, any excess positional arguments 
-     * will be discarded. 
-     * - Similarly, if a named argument has several values, and the parameter specifies an array or 
+     * - If a named argument has several values, and the parameter specifies an array or 
      * string value, then all values for the named argument will be used, but if not, then only the 
      * *first* argument value will be used. 
+     * - If the parameter corresponding to a positional argument specifies an array or string value, 
+     * then that argument and ALL remaining positional arguments will be joined into a single array 
+     * or string value, respectively.
+     *     - This means that any argument AFTER a positional argument whose value must be a string or 
+     *     array, MUST be a named argument.
+     * - If there are no positional arguments with a specification for string or array types, and there
+     * are more than are needed for the command, then these excess arguments will be ignored.
      * - If there is both a positional argument and named argument which apply to the same parameter,
      * then the named argument's value will be used.
      * 
@@ -205,11 +208,12 @@ class CommandManager {
         if (!comParams || comParams.length < 1) {
             return args;                                    // if the command has no input parameters, then immediately return the (empty) args
         }
-        let lastPargIdx;                                    // stores the index of the last used positional argument
-        
+        let lastParg = false;                               // tracks if the last positional argument has been processed or not (any pargs with STR or ARY type)
+ 
         // Iterate through each command parameter, getting its index and then name, specified possible values, and default value (if any):
         for (const [i, [pName, pVal, defVal]] of comParams.entries()) {
             let a;                                          // The argument to potentially be added to array of arguments.
+            // Check for named argument value:
             if (nargs.hasOwnProperty(pName)) {              // If there is a named argument with same name as this parameter,
                 a = nargs[pName];                           // then set the arg to have the named argument's value.
                 if (Array.isArray(a)) {                     // but also if the argument is an array, 
@@ -219,9 +223,19 @@ class CommandManager {
                         a = a[0];                           // then change argument value to be only the first element in its array.
                     }
                 }
-            } else if (pargs.hasOwnProperty(i)) {           // Or if there's a value present in the positional argument array at the same index as the command parameter array,
-                a = pargs[i];                               // then set arg to have the positional argument's value.
-                lastPargIdx = i;                            // then update the last-positional-argument-index value to be this index.
+            // Check for positional argument value:
+            } else if (pargs.hasOwnProperty(i) && !lastParg) {  // Or if there's a value present in the positional argument array at the same index as the command parameter array, and the last positional argument hasn't been processed yet,
+                if (pVal === "ARY" || pVal === "STR") {                
+                    a = pargs.slice(i);                     // and if the parameter value specifies an array or string, set arg to be this and ALL remaining positional arguments in an array,
+                    lastParg = true;                        // then set lastParg to true (as no more positional arguments can be available after this has used the rest!)
+                    if (pVal === "STR") {
+                        a = a.join(" ");                    // additionally if the parameter value specifies a string, set arg to be this and ALL remaining positional arguments, joined as a single string,
+                    }
+                } else {
+                    a = pargs[i];                           // otherwise, just set arg to have the single positional argument's value.
+                    delete pargs[i];                        // then delete the positional arguments array property at this index so it cannot be reused.
+                }
+            // Check for default value if no argument value:
             } else {                                        // If there is neither a named or positional argument for this parameter,
                 if (defVal !== undefined) {                 // but there *is* a default value, then use the default value,
                     a = defVal;
@@ -229,27 +243,12 @@ class CommandManager {
                     throw new Error(`No argument was provided for the required "${pName}" parameter of the "${name}" command`)                         
                 }
             }
-            args[i] = a;                                    // then finally add the argument to the argument array at the correct index
-        }
-
-        // Determine if there are extra positional arguments which should be combined and used as an argument value:
-        if (pargs && pargs.length > 0) {                    // firstly, only do this block if there's actually positional arguments
-            const lastPargParamVal = comParams[lastPargIdx][1]  // get the specified value for the command parameter at the same index as the last used positional argument
-            if (pargs.length > lastPargIdx + 1) {           // if the last positional argument used was NOT the last element in the array of positional arguments,
-                if (lastPargParamVal === "ARY") {           // and if the corresponding parameter specifies an array ("ARY"),
-                    args[lastPargIdx] = pargs.slice(lastPargIdx);           // then combine all the remaining positional arguments into a single array and set that as the argument value.
-                } else if (lastPargParamVal === "STR") {    // but if the corresponding parameter specifies a string ("STR"),
-                    args[lastPargIdx] = pargs.slice(lastPargIdx).join(' '); // then combine all the remaining positional arguments into a single string and set that as the argument value.
-                }
-            }
-        }
-
-        // Check that each argument is valid
-        for (const [i, [pName, pVal, defVal]] of comParams.entries()) {
-            let a = args[i];
-            if (!this.isArgValid(a, pVal)) {                // if the argument is not valid (it matches the parameter's specified value), then throw an error
+            // Check that each argument is valid:
+            if (!this.isArgValid(a, pVal)) {                // if the argument doesn't match the parameter's specified value, then throw an error
                 throw new Error(`"${a}" is an invalid argument for the "${pName}" input parameter of the "${name}" command. The argument must match this pattern: "${pVal}}"`)                         
             }
+            // Add argument to argument array:
+            args[i] = a;                                    // then finally add the argument to the argument array at the correct index
         }
 
         return args                                         // finally, return an object containing the command name and arguments

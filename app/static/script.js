@@ -74,7 +74,7 @@ async function serverRequest(endPoint, data={}) {
     var result = await response.json();                 // this will become an object
     // Handle any errors returned by the server:
     // if the response is an object with only a single "ERROR" key, throw a "server" error:
-    if (result.constructor === Object && Object.keys(result).toString() === "ERROR") {
+    if (result && result.constructor === Object && Object.keys(result).toString() === "ERROR") {
         const svrErrMsg = "An error occurred on the server: \n" + result["ERROR"]   // get the error message from the value of the result "ERROR" object
         const serverError = new Error(svrErrMsg)        // create a new error object, and set its message
         serverError.name = "ServerError";               // set the name for the error
@@ -100,29 +100,6 @@ function displayError(e) {
 
 ///////// Internal Actions /////////
 
-/**
- * Create a new note entry, store it in the backend, and display it in the log view.
- * 
- * @param {string} title - (optional) a general title of the note.
- * @param {number} time - (optional) an epoch/unix timestamp of when the note was created occurred. Defaults to the current time when called. 
- * @param {string} content - the main note content.
- */
-function createNoteEntry(title, time=Date.now(), content, tags) {
-    const props = {                                         // create a new object with note entry properties
-        'title': title,
-        'time': time,
-        'type': "note",                                     // make sure to add the 'type' property with "note" value (this is needed for entry storage)
-        'content': content
-    }
-    if (tags) {
-        props['tags'] = tags;                               // adds 'tags' property only if it was included in args
-    }
-    // await serverRequest("/lib/new", props);                 // send request to server to create and store a new note entry with the entry properties
-        // -> this must be complete and without errors before continuing
-    props['time'] = timestampToStr(time);                   // convert time property to string representation before displaying
-    logView.addEntry(props, "note");                        // display the new entry in log-view
-}
-
 function displayLogMessage(content, title="", styleType="message") {
     const props = {                                         // create a new object with log message properties
         'title': title,
@@ -143,6 +120,33 @@ async function displayRecentEntries() {
     }
 }
 
+/**
+ * Create a new note entry, store it in the backend, and display it in the log view.
+ * 
+ * @param {string} title - A general title of the note.
+ * @param {string} content - The main note content.
+ * @param {number} time - (optional) An epoch/unix timestamp of when the note was created occurred. Defaults to the current time when called. 
+ * @param {Array} tags - (optional) An array of tags which the note is categorized by.
+ */
+async function createNoteEntry(title, content, time=Date.now(), tags) {
+    // 1) Create the note properties object:
+    const props = {                                         // create a new object with note entry properties
+        'title': title,
+        'time': time,
+        'type': "note",                                     // make sure to add the 'type' property with "note" value (this is needed for entry storage)
+        'content': content
+    }
+    if (tags) {
+        props['tags'] = tags;                               // adds 'tags' property only if it was included in args
+    }
+    // 2) Store the note on the server:
+    await serverRequest("/lib/new", props);                 // send request to server to create and store a new note entry with the entry properties
+        // -> this must be complete and without errors before continuing
+    // 3) Display the entry in the log-view:    
+    props['time'] = timestampToStr(time);                   // convert time property to string representation before displaying
+    logView.addEntry(props, "note");                        // display the new entry in log-view
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 
 ///////// Command Manager /////////
@@ -154,15 +158,26 @@ const com = new CommandManager(defaultCommands);            // Create new `Comma
 
 /** 
  * Execute a command from input. Accepts a string, which will lead
- * to the execution of a command action function.
+ * to the execution of a command action function. 
+ * 
+ * By default, this operates as an input for taking notes, but allows other commands
+ * to be executed with the correct prefix.
+ * - Any input starting with a forward slash '/', will be parsed as a normal command.
+ * Otherwise, the input will be apply to the "note" command, which creates a new note.
  * 
  * @param {string} inputStr - the string which will be used to select and execute a command.
  */
 async function executeCommandFromInput(inputStr) {
     let name;
     let args;
+    const defaultCommand = "note"                                   // the name of the default command
     // 1) Extract the command name and arguments from the input string:
     try {
+        if (inputStr.startsWith('/')) {
+            inputStr = inputStr.substring(1);                       // if the input string starts with a '/', then treat it as a normal command, and remove the '/'
+        } else {
+            inputStr = defaultCommand + " " + inputStr              // otherwise, treat all input content as the arguments for the default command, and add the default command name to the front of string
+        }
         [name, args] = com.getCommandParamsFromInput(inputStr);     // extract the command name and arguments from the input string
         await com.executeCommand(name, args);                       // execute the command. -> must use `await` in order to catch errors from any async command functions
     } catch (error) {

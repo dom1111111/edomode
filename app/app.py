@@ -72,20 +72,19 @@ def error_test():
 @app.route('/lib/recent', methods = ['POST'])
 @handle_exception
 def get_n_recent_entries():
-    """Get all entries in a library."""
+    """Get recent entries in a library."""
     request_data = request.get_json()
-    request_data.update({"lib_dir": lib_path})              # must add library directory into request
-    entries = usr_lib.get_n_recent_entries(**request_data)  # get the `n` most recent entries
+    n = request_data['n']                                   # get n -> the number of recent entries to return
+    entries = usr_lib.get_n_recent_entries(lib_path, n)     # get the `n` most recent entries, adding library path
     return jsonify(entries)
 
 @app.route('/lib/new', methods = ['POST'])
 @handle_exception
 def new_entry():
     """Create a new entry in a library."""
-    request_data = request.get_json()
-    request_data.update({"lib_dir": lib_path})
-    # request_data should already be formatted correctly to match function as is!
-    usr_lib.create_entry(**request_data)
+    entry_props = request.get_json()                        # the value parsed from the request should be a dictionary of all of the entry properties
+    title = entry_props.pop("title")                        # remove the title property from the entry properties, and get its value
+    usr_lib.create_entry(lib_path, title, entry_props)      # create the entry with the library module, adding library path
     return jsonify(None)
 
 
