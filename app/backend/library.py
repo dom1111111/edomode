@@ -232,7 +232,8 @@ def _get_valid_absolute_lib_path(lib_dir:str, path:str) -> Path:
     if path_obj.parts[0] == _DATA_DIR:
         raise Exception("You cannot read/write a file in the library's reserved data directory.")
     return lib_dir_obj / path_obj                           # create a full absolute path by combining the library directory with the relative path for the file
-    
+
+
 #########################################################
 ######### Main Functions for Library User Files #########
 #########################################################
@@ -314,6 +315,7 @@ def delete_file(lib_dir:str, path:str):
     """
     full_path = _get_valid_absolute_lib_path(lib_dir, path)
     full_path.unlink()                                      # delete the file (will raise error if it doesn't exist)
+
 
 ######################################################
 ######### Main Functions for Library Entries #########

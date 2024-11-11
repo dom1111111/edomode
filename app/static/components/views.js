@@ -90,7 +90,7 @@ customElements.define("log-view", class LogView extends CustomElementBase {
 
     /** Remove all entries (reset). */
     clearAll() {
-        this.shadowRoot.HTMLCode = this.constructor.elementHTML;
+        this.shadowRoot.innerHTML = this.constructor.elementHTML;
     }
     
 });

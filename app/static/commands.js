@@ -172,6 +172,23 @@ const defaultCommands = {
         }
     },
 
+    recent: {
+        desc: "Get `n` most recent entries and render them",
+        inputParams: [
+            ['n', "NUM", 50],                               // (optional) the number of recent entries to get
+        ],
+        async action(n=50) {
+            const data = {'n': n}                           // setting 50 as default number of entries to get   
+            const response = await MAIN.serverRequest("/lib/recent", data); // make request to server, sending the data
+            // the returned response should be an object with each of the entries
+            MAIN.logView.clearAll()                         // first clear all currently displayed entries in the log-view
+            for (const entry of response) {                 // iterate through response, getting each entry
+                entry.time = MAIN.timestampToStr(entry.time)// adjust the entry object's 'time' property to be a readable string before displaying
+                MAIN.logView.addEntry(entry, "note");       // render the entry in the log-view
+            }
+        }
+    },
+
     note: {
         desc: "Create a new note entry.",
         inputParams: [

@@ -273,9 +273,9 @@ class CommandManager {
      * Execute a command action function from a given name and arguments.
      * 
      * @param {string} name - The name of the command to execute.
-     * @param {Array} args - The arguments to pass to the command.
+     * @param {Array} args - The arguments to pass to the command (defaults to empty array).
      */
-    async executeCommand(name, args) {
+    async executeCommand(name, args=[]) {
         this.validateComName(name);                         // ensure that the command name exists within the `command` object
         const func = this.commands[name].action             // get the command's action function
         await func(...args);                                // call the action function with the arguments (no command action functions should ever return anything, so nothing needs to be returned here)
