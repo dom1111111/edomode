@@ -32,14 +32,17 @@ customElements.define("log-view", class LogView extends CustomElementBase {
     static styleTypeCSS = {                                 // the extra styles to apply to certain entry child elements
         message: `
             :host {
-                /* align-self: flex-end; */
-                background-color: blue;
+                background-color: rgb(83, 148, 202);
+                align-self: flex-end;
+            }
+            .content {
+                text-align: end;
             }
         `,
         error: `
             :host {
-                /* align-self: flex-end; */
-                background-color: red;
+                background-color: rgb(202, 83, 83);
+                align-self: flex-end;
             }
             .content {
                 text-align: end;
@@ -159,6 +162,7 @@ customElements.define("log-entry", class LogEntry extends CustomElementBase {
             display: flex;
             flex-direction: row;
             justify-content: space-between;
+            column-gap: 100px;
             padding: 5px;
         }
 
