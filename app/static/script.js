@@ -66,6 +66,7 @@ async function serverRequest(endPoint, data={}) {
     if (data.constructor !== Object) {
         throw new TypeError("The 'data' argument must be an Object");
     }
+    // Make the server request:
     const response = await fetch(serverURL + endPoint, {
         method: "POST",                                     // makes a POST method (rather than GET)
         mode: "cors",
@@ -74,16 +75,13 @@ async function serverRequest(endPoint, data={}) {
         },
         body: JSON.stringify(data)                          // `JSON.stringify` converts object into JSON string
     });
-    var result = await response.json();                     // this will become an object
     // Handle any errors returned by the server:
-    // if the response is an object with only a single "ERROR" key, throw a "server" error:
-    if (result && result.constructor === Object && Object.keys(result).toString() === "ERROR") {
-        const svrErrMsg = "An error occurred on the server: \n" + result["ERROR"]   // get the error message from the value of the result "ERROR" object
-        const serverError = new Error(svrErrMsg)            // create a new error object, and set its message
-        serverError.name = "ServerError";                   // set the name for the error
+    if (!response.ok) {
+        const serverError = new Error(`${response.status} - ${response.statusText}\n${response.url}`);  // create a new error object, and set its message
+        serverError.name = "Server Error";                  // set the name for the error
         throw serverError;                                  // throw the error
     }
-    return result;
+    return await response.json();                           // parse response body as JSON, and return it (this will become an object)
 }
 
 ///////// UI Display /////////
@@ -173,7 +171,7 @@ async function executeCommandFromInput(inputStr) {
         await com.executeCommand(name, args);               // execute the command. -> must use `await` in order to catch errors from any async command functions
     } catch (error) {
         if (name) {                                         // if error and `name` is defined, modify error to include command name
-            error.message = `${error.name}: ${error.message}`
+            error.message = `${error.name}:\n${error.message}`
             error.name = `"${name}" command execution error`;
         }
         displayError(error);                                // display error (create entry, print in console)
