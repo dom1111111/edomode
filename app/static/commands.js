@@ -190,7 +190,7 @@ const defaultCommands = {
     },
 
     search: {
-        desc: "Search for entries in the library, and display the results in the log-view, sorted from most to least recent.",
+        desc: "Search for entries in the library using a single general query, and display the results in the log-view, sorted from most to least recent.",
         inputParams: [
             ['query', "STR"]                                // the search query to find entries
         ],
@@ -198,6 +198,37 @@ const defaultCommands = {
             const data = {'query': query}
             const response = await MAIN.serverRequest("/lib/search", data);     // make request to server, sending the data (the returned response should be an object with each of the entries)
             MAIN.displayLogMessage("", `Results for Search Query: "${query}"`); // first create a message to denote the start of the search results
+            for (const entry of response) {                 // iterate through response, getting each entry
+                entry.time = MAIN.timestampToStr(entry.time);   // adjust the entry object's 'time' property to be a readable string before displaying
+                MAIN.logView.addEntry(entry, "pastEntry");  // render the entry in the log-view, displayed as separate from regular entries
+            }
+        } 
+    },
+
+    "search-props": {
+        desc: "Search for entries in the library with specified entry properties, and display the results in the log-view, sorted from most to least recent.",
+        inputParams: [
+            ['title', "STR", ""],                           // (optional) the search pattern for the "title" property
+            ['tags', "STR", ""],                            // (optional) the search pattern for the "tags" property
+            // ['time', "STR", ""],                            // (optional) the search pattern for the "time" property
+            ['content', "STR", ""]                          // (optional) the search pattern for the "content" property
+        ],
+        async action(title, tags, content) {
+            const data = {'patterns':{}};                   // the request data should contain a single "patterns" object, with each supplied property name and value
+            const patterns = [['title', title], ['tags', tags], ['content', content]];
+            let queryMsg = ``                               // a string to represent the properties and their patterns
+            for (const [name, val] of patterns) {
+                if (val) {
+                    data.patterns[name] = val;              // add the property name and value, but ONLY if the value was actually supplied
+                    queryMsg += `${name}: "${val}", `       // add name and val to query message
+                }
+            }
+            if (queryMsg.endsWith(', ')) {queryMsg = queryMsg.slice(0, -2)}         // remove any un-needed trailing chars from query message
+            MAIN.displayLogMessage("", `Results for Search Query: {${queryMsg}}`);  // first display a message to denote the start of the search results
+            if (!Object.keys(data.patterns).length > 0) {
+                return                                      // if no patterns were given at all, then return now
+            }
+            const response = await MAIN.serverRequest("/lib/search", data);     // make request to server, sending the data (the returned response should be an object with each of the entries)
             for (const entry of response) {                 // iterate through response, getting each entry
                 entry.time = MAIN.timestampToStr(entry.time);   // adjust the entry object's 'time' property to be a readable string before displaying
                 MAIN.logView.addEntry(entry, "pastEntry");  // render the entry in the log-view, displayed as separate from regular entries

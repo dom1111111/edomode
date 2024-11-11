@@ -45,8 +45,7 @@ def get_n_recent_entries():
 def get_entries_by_search():
     """Get all entries in a library which match a search query, sorted by most to least recent."""
     request_data = request.get_json()
-    query = request_data['query']                           # get the search string
-    patterns = {'title': query, 'tags': query, 'content': query}    # create a patterns dict which applies the search string to the main entry properties
+    patterns = request_data['patterns']                     # get the patterns dict from the request data
     entries = usr_lib.get_entries_by_patterns(lib_path, patterns, [('MATCHSCORE', 'DSC'), ('time', 'DSC')]) # get the matching entries, sorted by match score and recentness 
     return jsonify(entries)
 
