@@ -195,7 +195,9 @@ const defaultCommands = {
             ['query', "STR"]                                // the search query to find entries
         ],
         async action(query) {
-            const data = {'query': query}
+            const data = {'patterns': {'title': query, 'tags':query, 'content': query}};
+                // the request data should contain a single "patterns" object, with property names and search patterns for them
+                // in this case, the query is applied to all main string based properties: title, tags, content
             const response = await MAIN.serverRequest("/lib/search", data);     // make request to server, sending the data (the returned response should be an object with each of the entries)
             MAIN.displayLogMessage("", `Results for Search Query: "${query}"`); // first create a message to denote the start of the search results
             for (const entry of response) {                 // iterate through response, getting each entry
