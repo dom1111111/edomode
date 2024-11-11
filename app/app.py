@@ -41,6 +41,15 @@ def get_n_recent_entries():
     entries = usr_lib.get_n_recent_entries(lib_path, n)     # get the `n` most recent entries, adding library path
     return jsonify(entries)
 
+@app.route('/lib/search', methods = ['POST'])
+def get_entries_by_search():
+    """Get all entries in a library which match a search query, sorted by most to least recent."""
+    request_data = request.get_json()
+    query = request_data['query']                           # get the search string
+    patterns = {'title': query, 'tags': query, 'content': query}    # create a patterns dict which applies the search string to the main entry properties
+    entries = usr_lib.get_entries_by_patterns(lib_path, patterns, [('MATCHSCORE', 'DSC'), ('time', 'DSC')]) # get the matching entries, sorted by match score and recentness 
+    return jsonify(entries)
+
 @app.route('/lib/new', methods = ['POST'])
 def new_entry():
     """Create a new entry in a library."""

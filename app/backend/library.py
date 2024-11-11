@@ -417,7 +417,7 @@ def get_entries_by_patterns(lib_dir:str, patterns:dict=None, sort_props:list=[('
     ### Examples:
     - If you wanted to find the 50 most recent entries whose titles contain "hello", and with
     titles in alphabetical order if time is the same, you could use: 
-        - `patterns = {'title': "hello"}, sort_props = [('time', asc)], n = 50`
+        - `patterns = {'title': "hello"}, sort_props = [('time', 'DSC')], n = 50`
     """
     # 0) Load Database:
     lib_path = _validate_library(lib_dir)                   # ensure library directory is set up properly, and set it up if not

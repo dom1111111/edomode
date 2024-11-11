@@ -33,10 +33,7 @@ customElements.define("log-view", class LogView extends CustomElementBase {
         message: `
             :host {
                 background-color: rgb(83, 148, 202);
-                align-self: flex-end;
-            }
-            .content {
-                text-align: end;
+                align-self: flex-start;
             }
         `,
         error: `
@@ -46,6 +43,13 @@ customElements.define("log-view", class LogView extends CustomElementBase {
             }
             .content {
                 text-align: end;
+            }
+        `,
+        pastEntry: `
+            :host {
+                background-color: rgb(164, 158, 135);
+                margin-left: 5em;
+                margin-right: 5em;
             }
         `,
     }

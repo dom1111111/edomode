@@ -173,7 +173,7 @@ const defaultCommands = {
     },
 
     recent: {
-        desc: "Get `n` most recent entries and render them",
+        desc: "Display the `n` most recent entries in the log-view",
         inputParams: [
             ['n', "NUM", 50],                               // (optional) the number of recent entries to get
         ],
@@ -183,14 +183,30 @@ const defaultCommands = {
             // the returned response should be an object with each of the entries
             MAIN.logView.clearAll()                         // first clear all currently displayed entries in the log-view
             for (const entry of response) {                 // iterate through response, getting each entry
-                entry.time = MAIN.timestampToStr(entry.time)// adjust the entry object's 'time' property to be a readable string before displaying
+                entry.time = MAIN.timestampToStr(entry.time);   // adjust the entry object's 'time' property to be a readable string before displaying
                 MAIN.logView.addEntry(entry, "note");       // render the entry in the log-view
             }
         }
     },
 
+    search: {
+        desc: "Search for entries in the library, and display the results in the log-view, sorted from most to least recent.",
+        inputParams: [
+            ['query', "STR"]                                // the search query to find entries
+        ],
+        async action(query) {
+            const data = {'query': query}
+            const response = await MAIN.serverRequest("/lib/search", data);     // make request to server, sending the data (the returned response should be an object with each of the entries)
+            MAIN.displayLogMessage("", `Results for Search Query: "${query}"`); // first create a message to denote the start of the search results
+            for (const entry of response) {                 // iterate through response, getting each entry
+                entry.time = MAIN.timestampToStr(entry.time);   // adjust the entry object's 'time' property to be a readable string before displaying
+                MAIN.logView.addEntry(entry, "pastEntry");  // render the entry in the log-view, displayed as separate from regular entries
+            }
+        } 
+    },
+
     note: {
-        desc: "Create a new note entry.",
+        desc: "Create a new note entry, and display it in the log-view.",
         inputParams: [
             ['content', "STR"],                             // the main content (this is always required)
             ['title', "STR", ""],                           // (optional) note title
