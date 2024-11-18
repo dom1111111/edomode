@@ -66,6 +66,8 @@ if __name__ == "__main__":
     except:
         # if no library folder path is provided, then use the test_library folder as a default
         lib_path = Path(__file__).parent.parent / "_test_library"
+    
+    usr_lib.validate_library(lib_path)                      # make sure the user library is valid before starting the app
 
-    app.run(debug=True)                             # this is blocking (so must run other stuff in threads)
+    app.run(debug=True)                                     # this is blocking (so must run other stuff in threads)
         # `debug=True` should only be while testing!

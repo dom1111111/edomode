@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-from operator import itemgetter
+import frontmatter
 
 ########################
 ######### Data #########
@@ -18,9 +18,10 @@ _ILLEGAL_FILE_CHARS = '<>:"/\|?*'
 
 # The properties which ALL entries MUST have:
 _BASE_PROPERTIES = {
-    # 'title': str,                                           # 'title' is the identifying property - must be unique for all entries across all types
+    'title': str,                                           # 'title' is the identifying property - must be unique for all entries across all types
     'time': int,                                            # 'time' will be a timestamp (seconds since the Epoch) for creation time
-    'type': ("note", "page", "task")                        # 'type' can be one the values in this tuple
+    'type': ("note", "page", "task"),                       # 'type' can be one the values in this tuple
+    'content': str                                          # 'content' is the actual content of an entry
 }
 
 
@@ -28,21 +29,47 @@ _BASE_PROPERTIES = {
 ######### Support Functions #########
 #####################################
 
-### Database File Read/Write ###
+### Entry Filepath Generation ###
 
-def _read_database(lib_path:Path) -> dict[str, dict]:
-    db_path = lib_path / _FILE_PATHS['database']            # create path to database file
-    with open(db_path, 'r') as f:
-        return json.load(f)                                 # read the db JSON file - return list of the db
+def _get_entry_filepath(lib_dir:str, title:str) -> Path:
+    """Get a complete path (Path object) for a library entry markdown file, where
+    the file name matches the title. Any characters in the title string which are 
+    illegal in file names, will be converted to their Unicode "code-point" surrounded 
+    by `%` symbols."""
+    safe_file_name = ""
+    for char in title:
+        if (not char.isascii()) or (char in (_ILLEGAL_FILE_CHARS + '%')):
+            char = f"%{ord(char)}%"
+        safe_file_name += char
+    return Path(lib_dir) / (safe_file_name + ".md") 
 
-def _write_database(lib_path:Path, db_data:dict):
-    db_path = lib_path / _FILE_PATHS['database']            # create path to database file
-    with open(db_path, 'w') as f:
-        json.dump(db_data, f, indent=3)                     # write the the entries data back to the db file
+def _get_entry_title_from_filepath(filepath:str) -> str:
+    """Get an entry title from its file name, un-encoding any file safe character 
+    representations back to their original characters"""
+    title = ""
+    current_code = ""
+    for char in Path(filepath).stem:                        # iterate through each character of the file path name (without suffix)
+        if char == '%':
+        # if the char is '%' and there's no current code, then append this char to current code (this is start of a code):
+            if not current_code:
+                current_code += char
+        # if the char is '%' and there is a current code, then convert the current code to its original character (this is end of a code):
+            else:
+                original_char = chr(int(current_code.strip('%')))   # remove the '%' symbols, convert digits back to int, and convert int back to unicode character
+                title += original_char                              # add this original character to overall decoded title string
+                current_code = ""                                   # reset current_code to be blank
+        # if the char is anything but a '%' and there is a current code, then add char to current code:
+        elif current_code:
+            current_code += char
+        # otherwise if the character isn't a '%' and there's no current code, then add this char to overall decoded title string:
+        else:
+            title += char
+    return title
+
 
 ### Library Setup/Validation ###
 
-def _validate_library(lib_dir:str) -> Path:
+def validate_library(lib_dir:str) -> Path:
     """Ensure that the provided library path string (lib_dir) is an existing directory 
     and has all needed sub-dirs/files for a library. Then return `Path` object of the string."""
     lib_path = Path(lib_dir)
@@ -96,7 +123,7 @@ def _validate_entry_data(entry_data:dict):
     elif entry_type == "task":
         pass
 
-### Support For Read Operations ###
+### Support For Search Operations ###
 
 def _tokenize(pattern:str) -> list[str]:
     """Split a string into a list of tokens, splitting at whitespace characters OR at
@@ -208,15 +235,6 @@ def _get_pattern_value_matches(pattern:str, value:str|int|float) -> int:
     
     return ptrn_matches                                     # finally, return the number of pattern matches
 
-def _convert_entries_to_list(entries:dict) -> list[dict]:
-    """Convert a dictionary of entries to a list of entries, where each entry
-    is a dictionary with all of the existing entry properties, but with an added
-    "title" property coming from the initial dictionary's key."""
-    return [dict({"title": key}, **val) for key, val in entries.items()]
-        # ^ Iterate through each key, value of the `entries` dict add a new dict to
-        # the list which contains the existing value dict but also add a "title" 
-        # property to the new dict, which comes from the key.
-
 ### Support For Library User File Operations ###
 
 def _get_valid_absolute_lib_path(lib_dir:str, path:str) -> Path:
@@ -298,8 +316,6 @@ def edit_file(lib_dir:str, path:str, new_path:str=None, data:str|bytes=None):
             full_path.write_text(data)                      # if the data is a string, then create file and write data as text
         elif isinstance(data, bytes):
             full_path.write_bytes(data)                     # or if the data is bytes, then create file and write data as bytes
-
-
     full_path.parent.mkdir(parents=True, exist_ok=True)     # if path had any directories between the file and the library directory, then this will create any which don't exist, and leave alone any which do
     # 2) Create the file:
     if isinstance(data, str):
@@ -323,83 +339,68 @@ def delete_file(lib_dir:str, path:str):
 
 ### Write Functions  - Create, Edit, Delete ###
 
-def create_entry(lib_dir:str, title:str, entry_data:dict):
-    """Create a new entry in a library. `title` is a string for the entry's title, and 
-    `entry_data` must be dictionary which includes all of the properties and their values 
-    that the entry should have (these must include the base properties)."""
-    # 0) Validate the library directory path string and the entry:
-    lib_path = _validate_library(lib_dir)                   # ensure library directory is set up properly
-    _validate_entry_data(entry_data)                        # ensure that the entry has valid properties
-    # 1) Read the database and ensure that the title doesn't already exist:
-    entries = _read_database(lib_path)                      # read database file and get entries dict
-    assert not title in entries.keys(), f'Cannot create new entry with the title "{title}". An entry already has this title.'
-    # 2) Add the entry to the database:
-    entries.update({title: entry_data})
-    _write_database(lib_path, entries)                      # write the modified dict back to database file
+def create_entry(lib_dir:str, entry_data:dict):
+    """Create a new entry in a library. `entry_data` must be dictionary which 
+    includes all of the properties and their values that the entry should have 
+    (these must include the base properties)."""
+    # 0) Validate and prepare the entry data:
+    _validate_entry_data(entry_data)                        # ensure that the entry has valid properties 
+    title = entry_data.pop('title')                         # remove and get the title and content from entry_data
+    content = entry_data.pop('content')
+    # 1) Create and validate a file path for the entry:
+    entry_filepath = _get_entry_filepath(lib_dir, title)    # generate a file path (markdown file) for the entry from its title
+    assert not entry_filepath.exists(), f'Cannot create new entry with the title "{title}". An entry already has this title.'
+    # 2) Create a new file for the entry, including its properties as YAML front-matter:
+    frontmatter.dump(frontmatter.Post(content, **entry_data), entry_filepath)
 
-def update_entry(lib_dir:str, title:str, new_title:str=None, entry_data:dict={}):
-    """Overwrite an existing entry in a library database.
-    - `title`: the current title of the entry to edit
-    - `new_title`: (if provided) title to replace the existing title 
-    - `entry_data`: (if provided) a dictionary with the property names and values which will 
+def update_entry(lib_dir:str, title:str, new_entry_data:dict):
+    """Overwrite an existing entry in a library.
+    - `title`: the current title of the entry to edit.
+    - `new_entry_data`: a dictionary with the property names and values which will 
     overwrite the existing ones. If a property isn't included here, then the existing 
-    property value will be left as is."""
-    # 0) Validate the library directory and read database:
-    lib_path = _validate_library(lib_dir)                   # ensure library directory is set up properly
-    entries = _read_database(lib_path)                      # read database file and get entries dict
-    assert title in entries.keys(), f"""Cannot update this entry with title "{title}". It doesn't exist in database"""
-    # 1) If a new title is provided, then ensure it doesn't already exist, and remove it from the db dict:
-    if new_title and (new_title != title):
-        assert not new_title in entries.keys(), f'Cannot update entry with the new title "{new_title}". An entry already has this title.'
-        old_data = entries.pop(title)
-        title = new_title
-    else:
-        old_data = entries.get(title)
-    # 2) Update the old entry data dict with the new one, and validate it
-    new_data = old_data.update(entry_data)
-    _validate_entry_data(new_data)                          # ensure that the updated entry has valid properties
-    # 3) Finally add updated entry back to the database:
-    entries.update({title: new_data})
-    _write_database(lib_path, entries)                      # write the modified dict back to database file
-    
+    property value will be left as is. If a "title" property is included here, then it 
+    will replace the current title for the entry."""
+    # 1) Get the existing entry data and update it with the new data:
+    entry_data = get_entry_by_title(lib_dir, title)         # get the existing entry
+    entry_data.update(new_entry_data)                       # update the existing entry with the new entry data
+    # 2) Validate and prepare the updated entry data:
+    _validate_entry_data(entry_data)                        # ensure that the updated entry has valid properties 
+    new_title = entry_data.pop('title')                     # remove and get the title and content from the updated entry_data
+    content = entry_data.pop('content')
+    entry_filepath = _get_entry_filepath(lib_dir, new_title)    # generate a file path (markdown file) for the entry from its title
+    # 3) If a new title was provided, then validate it and delete the old entry file:
+    if title != new_title:
+        assert not entry_filepath.exists(), f'Cannot update entry with the title "{new_title}". An entry already has this title.'
+        delete_entry(lib_dir, title)                        # delete the old file (only if the new title isn't already in use)
+    # 4) Rewrite the file (or write a new file) for the entry, including its properties as YAML front-matter:
+    frontmatter.dump(frontmatter.Post(content, **entry_data), entry_filepath)
+
 def delete_entry(lib_dir:str, title:str):
     """Delete the entry whose title is `title`. If entry doesn't exist, does nothing"""
-    lib_path = _validate_library(lib_dir)                   # ensure library directory is set up properly
-    entries = _read_database(lib_path)                      # read database file and get entries dict
-    entries.pop(title, None)                                # remove the entry with `title` from the db dict
-    _write_database(lib_path, entries)                      # write the modified dict back to database file
+    entry_filepath = _get_entry_filepath(lib_dir, title)    # generate a file path (markdown file) for the entry from its title
+    if entry_filepath.exists():
+        entry_filepath.unlink()                             # delete the entry file if it exists
 
 ### Read Functions ###
 
-def get_all_entries(lib_dir:str):
-    """Get all of the entries in a library."""
-    lib_path = _validate_library(lib_dir)                   # ensure library directory is set up properly
-    return _convert_entries_to_list(_read_database(lib_path))   # get entries dict from reading database file, convert to list, and return
+def get_entry_by_title(lib_dir:str, title:str) -> dict:
+    """Get a single entry with the title `title`."""
+    entry_filepath = _get_entry_filepath(lib_dir, title)    # generate a file path (markdown file) for the entry from its title
+    assert entry_filepath.exists(), f"""Cannot get the entry with title "{title}". It doesn't exist in database"""
+    post = frontmatter.load(entry_filepath)                 # read the entry file 
+    return dict({'title':title, 'content':post.content}, **post.metadata)
+        # ^ and return an entry dict containing all properties, including title and content
 
-def get_n_recent_entries(lib_dir:str, n:int):
-    """Get a maximum of `n` most recent entries in a library."""
-    lib_path = _validate_library(lib_dir)                   # ensure library directory is set up properly
-    entries = _read_database(lib_path)                      # read database file and get entries dict
-    entries_list = _convert_entries_to_list(entries)        # convert the entries dictionary to a list 
-    if len(entries_list) <= n:
-        return entries_list                                 # if the total number of entries is less than `n`, just return all of them
-    return entries_list[-n:]                                # otherwise return the last `n` entries
-
-def get_entries_by_title(lib_dir:str, titles:list[str]):
+def get_entries_by_title(lib_dir:str, titles:list[str]) -> list[dict]:
     """Get all entries whose title's match those in the `titles` list arg."""
-    lib_path = _validate_library(lib_dir)                   # ensure library directory is set up properly
-    entries = _read_database(lib_path)                      # read database file and return entries dict
-    title_entries = []
-    for title in titles:
-        entry = entries.get(title)                          # get each entry value dict with the matching title key
-        if entry:                                           # if the entry exists with that title, append it the title_entries list, adding the title as a property
-            title_entries.append(dict({'title':title}, **entry))
-    return title_entries
+    entries = []
+    for title in titles:                                    # iterate through each title in the list,
+        entries.append(get_entry_by_title(lib_dir, title))  # and append an entry dict matching each title to the list of entries
+    return entries
 
 def get_entries_by_patterns(lib_dir:str, patterns:dict=None, sort_props:list=[('title', 'ASC')], n:int=None) -> list[dict]:
-    """Get a dictionary containing all entries within a library (`lib_dir`) whose properties 
-    match a search pattern string. Can also sort those entries by one or more properties, with
-    individual direction for each.
+    """Get a list containing all entries within a library (`lib_dir`) whose properties match a search pattern string. 
+    Can also sort those entries by one or more properties, with individual direction for each.
 
     ### Arguments:
     - `lib_dir` - The path to the library to get entries from.
@@ -419,15 +420,21 @@ def get_entries_by_patterns(lib_dir:str, patterns:dict=None, sort_props:list=[('
     titles in alphabetical order if time is the same, you could use: 
         - `patterns = {'title': "hello"}, sort_props = [('time', 'DSC')], n = 50`
     """
-    # 0) Load Database:
-    lib_path = _validate_library(lib_dir)                   # ensure library directory is set up properly, and set it up if not
-    entries = _convert_entries_to_list(_read_database(lib_path))    # read the db file, convert to list of all entries
     matched_entries = []                                    # this will be the list which holds all matching entries from the database
     entry_match_scores = []                                 # this will hold all the matched entry's match scores
+    
+    # 1) Read all entry files and convert to list of entry dicts:
+    all_entries = []
+    for path in Path.iterdir(lib_dir):                      # iterate through each path in the top level of the library directory
+        if path.is_file() and (path.suffix == ".md"):       # if the path is a markdown file, then it can be considered an entry
+            post = frontmatter.load(path)                   # read the entry file,
+            title = _get_entry_title_from_filepath(path)    # get the title from file path
+            all_entries.append(dict({'title':title, 'content':post.content}, **post.metadata))
+                # ^ and append an entry dict containing all properties, including title and content, to the list of all entries 
 
-    # 1) Check each entry to see if its properties match any of the provided patterns:
-    if patterns:
-        for entry in entries:                               # iterate through all entries in database
+    # 2) Check each entry to see if its properties match any of the provided patterns:
+    if patterns:                                            # only continue if patterns were provided
+        for entry in all_entries:                           # iterate through all entries in database
             match_score = 0
             for prop_name, ptrn in patterns.items():        # iterate through all property patterns in `patterns`
                 entry_prop_val = entry.get(prop_name)       # get the value of the entry's property matching the current pattern property name
@@ -439,15 +446,27 @@ def get_entries_by_patterns(lib_dir:str, patterns:dict=None, sort_props:list=[('
             # If this entry has at least one property matching the corresponding pattern,
             # then add it to the list of matched entries and add its match score to the match score list:
             if match_score:
-                matched_entries.append(entry.copy())        # append a *copy* of the entry dict to the list of matches (so the original is unaffected)
+                matched_entries.append(entry)               # append the entry dict to the list of matches
                 entry_match_scores.append(match_score)
     else:
-        matched_entries = entries                           # if no patterns provided, then consider ALL entries as matched entries
+        matched_entries = all_entries                       # if no patterns provided, then consider ALL entries as matched entries
 
-    # 2) Sort and then return the entries:
+    # 3) Sort and then return the entries:
     sorted_matched_entries = matched_entries.copy()         # create a copy of the matched entries to be sorted
     for prop, order in reversed(sort_props):                # sort the matched entries by each sort property (need to start with last property first for this to be in correct order)
-        key_func = itemgetter(prop)                         # normally, the sorting function should just return the specified entry property (does nothing if prop name not present in entry dict)
+        def key_func(entry):
+            # This sorting key function will return the specified entry sort property value to use for sorting.
+            # But if the sort property is not present in the entry, then it will instead return a value which
+            # is compatible its type and unobtrusive in affecting the sort order.
+            prop_type = _BASE_PROPERTIES.get(prop)          # get the property type from _BASE_PROPERTIES directly
+            if isinstance(prop_type, (tuple, list)):        
+                prop_type = prop_type[type(0)]              # or its a tuple/list of values, from the type of its first element
+            default_vals_by_type = {                        # adjust values so that this is always the *last* entry
+                int: float('-inf') if order.upper() == "DSC" else float('inf'),
+                str: '' if order.upper() == "DSC" else ('z'*100)
+            }
+            def_val = default_vals_by_type.get(prop_type)   # get the default value based on property type
+            return entry.get(prop, def_val)
         if prop == "MATCHSCORE":                            # otherwise if the property is "MATCHSCORE", then the sorting function should return the match score for the item (same index between lists)
             key_func = lambda entry: entry_match_scores[matched_entries.index(entry)]   # get the index of this entry in the matched_entries list, and use that index for getting its corresponding match score in entry_match_scores
         rev = True if order.upper() == 'DSC' else False 
