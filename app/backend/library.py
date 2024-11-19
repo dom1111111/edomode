@@ -335,7 +335,7 @@ def get_entries_by_patterns(lib_dir:str, patterns:dict=None, sort_props:list=[('
     
     # 1) Read all entry files and convert to list of entry dicts:
     all_entries = []
-    for path in Path.iterdir(lib_dir):                      # iterate through each path in the top level of the library directory
+    for path in Path(lib_dir).iterdir():                    # iterate through each path in the top level of the library directory
         if path.is_file() and (path.suffix == ".md"):       # if the path is a markdown file, then it can be considered an entry
             post = frontmatter.load(path)                   # read the entry file,
             title = _get_entry_title_from_filepath(path)    # get the title from file path

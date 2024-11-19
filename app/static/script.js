@@ -24,14 +24,14 @@ const com = new CommandManager(defaultCommands);            // Create new `Comma
 /** Convert epoch timestamp to readable date-time string */
 function timestampToStr(timestamp) {
     // timestamp should be int
-    const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const timeObj = new Date(timestamp);
     const hour = timeObj.getHours()
     const time = {
         year:   timeObj.getFullYear(),
         month:  (timeObj.getMonth() + 1).toString().padStart(2, '0'),
         day:    timeObj.getDate().toString().padStart(2, '0'),
-        weekday:weekdays[timeObj.getDay() - 1],
+        weekday:weekdays.at(timeObj.getDay()),
         hour:   hour.toString().padStart(2, '0'),
         minute: timeObj.getMinutes().toString().padStart(2, '0'),
         second: timeObj.getSeconds().toString().padStart(2, '0'),
@@ -117,29 +117,22 @@ function displayLogMessage(content, title="", styleType="message") {
 ///////// Entry Writing /////////
 
 /**
- * Create a new note entry, store it in the backend, and display it in the log view.
+ * Create a new library entry, store it in the backend, and display it in the log view.
  * 
- * @param {string} title - A general title of the note.
- * @param {string} content - The main note content.
- * @param {number} time - (optional) An epoch/unix timestamp of when the note was created occurred. Defaults to the current time when called. 
- * @param {Array} tags - (optional) An array of tags which the note is categorized by.
+ * @param {Object} props - An object containing all the entry properties. Will be checked to ensure it has all mandatory base properties.
  */
-async function createNoteEntry(title, content, time=Date.now(), tags) {
-    // 1) Create the note properties object:
-    const props = {                                         // create a new object with note entry properties
-        'title': title,
-        'time': time,
-        'type': "note",                                     // make sure to add the 'type' property with "note" value (this is needed for entry storage)
-        'content': content
-    }
-    if (tags) {
-        props['tags'] = tags;                               // adds 'tags' property only if it was included in args
+async function createEntry(props) {
+    // 1) Ensure the properties object has all mandatory base entry properties:
+    for (const p_name of ['title', 'time', 'type', 'content']) {
+        if (!props.hasOwnProperty(p_name)) {
+            throw new Error(`Cannot create entry which is missing the "${p_name}" base property`)
+        }
     }
     // 2) Store the note on the server:
     await serverRequest("/lib/new", props);                 // send request to server to create and store a new note entry with the entry properties
         // -> this must be complete and without errors before continuing
     // 3) Display the entry in the log-view:    
-    props['time'] = timestampToStr(time);                   // convert time property to string representation before displaying
+    props['time'] = timestampToStr(props['time']);          // convert time property to string representation before displaying
     logView.addEntry(props, "note");                        // display the new entry in log-view
 }
 
@@ -188,7 +181,7 @@ async function executeCommandFromInput(inputStr) {
 ///////// Page Setup /////////
 
 window.onload = () => {
-    com.executeCommand('recent')                            // render most recent existing entries (stored on server) in the log view
+    executeCommandFromInput('/recent')                      // render most recent existing entries (stored on server) in the log view
     commandBar.action = executeCommandFromInput;            // set `executeCommandFromInput` as the callback function for the command bar input event
 };
 
@@ -197,4 +190,4 @@ window.onload = () => {
 
 ///////// Exports (used by `commands` module) /////////
 
-export {logView, timestampToStr, serverRequest, createNoteEntry, displayLogMessage}
+export {logView, timestampToStr, serverRequest, createEntry, displayLogMessage}

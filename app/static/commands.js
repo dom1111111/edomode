@@ -239,22 +239,27 @@ const defaultCommands = {
     },
 
     note: {
-        desc: "Create a new note entry, and display it in the log-view.",
+        desc: "Create a new note entry.",
         inputParams: [
             ['content', "STR"],                             // the main content (this is always required)
             ['title', "STR", ""],                           // (optional) note title
             ['tags', "ARY", []]                             // (optional) note tags
         ],
         async action(content, title="", tags=[]) {
-            let time;
-            if (title.length < 1) {
-                time = Date.now();
+            const time = Date.now();
+            if (!title) {
                 title = `Note ${time}`                      // if title not provided, then set title to be "Note" + the current time stamp
             }
-            if (tags.length < 1) {
-                tags = undefined;                           // if tags are not provided, make sure they are entirely not included (undefined)
+            const props = {                                 // create the props Object with all entry properties
+                'title': title,
+                'time': time,
+                'type': "note",
+                'content': content
             }
-            await MAIN.createNoteEntry(title, content, time, tags);
+            if (tags.length > 0) {
+                props['tags'] = tags                        // if tags are provided, then add them to the props Object
+            }
+            await MAIN.createEntry(props);
         }
     },
     

@@ -33,7 +33,7 @@ def get_n_recent_entries():
     """Get recent entries in a library."""
     request_data = request.get_json()
     n = request_data['n']                                   # get n -> the number of recent entries to return   
-    entries = usr_lib.get_entries_by_patterns(lib_path, sort_props=('time', 'DSC'), n=n)    # get the `n` most recent entries
+    entries = usr_lib.get_entries_by_patterns(lib_path, sort_props=[('time', 'DSC')], n=n)    # get the `n` most recent entries
     return jsonify(entries)
 
 @app.route('/lib/search', methods = ['POST'])
