@@ -1,10 +1,5 @@
-from flask import Flask, request, jsonify, send_from_directory, Response
-from queue import Queue
-import json
+from flask import Flask, request, jsonify, send_from_directory
 from sys import argv
-import traceback
-from functools import wraps
-from textwrap import dedent
 from pathlib import Path
 from backend import library as usr_lib
 
@@ -37,8 +32,8 @@ def error_test():
 def get_n_recent_entries():
     """Get recent entries in a library."""
     request_data = request.get_json()
-    n = request_data['n']                                   # get n -> the number of recent entries to return
-    entries = usr_lib.get_n_recent_entries(lib_path, n)     # get the `n` most recent entries, adding library path
+    n = request_data['n']                                   # get n -> the number of recent entries to return   
+    entries = usr_lib.get_entries_by_patterns(lib_path, sort_props=('time', 'DSC'), n=n)    # get the `n` most recent entries
     return jsonify(entries)
 
 @app.route('/lib/search', methods = ['POST'])
@@ -53,8 +48,7 @@ def get_entries_by_search():
 def new_entry():
     """Create a new entry in a library."""
     entry_props = request.get_json()                        # the value parsed from the request should be a dictionary of all of the entry properties
-    title = entry_props.pop("title")                        # remove the title property from the entry properties, and get its value
-    usr_lib.create_entry(lib_path, title, entry_props)      # create the entry with the library module, adding library path
+    usr_lib.create_entry(lib_path, entry_props)             # create the entry with the library module, adding library path
     return jsonify(None)
 
 
